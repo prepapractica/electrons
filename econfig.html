@@ -1,0 +1,1512 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950 text-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Electron Configuration Virtual Lab</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    gridTemplateColumns: {
+                        '18': 'repeat(18, minmax(0, 1fr))',
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            400: '#4ade80',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            900: '#14532d',
+                        },
+                        atom: {
+                            s: '#3b82f6',
+                            p: '#10b981',
+                            d: '#f59e0b',
+                            f: '#ec4899'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'Fira Code', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        .orbital-box {
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+        .orbital-box:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(30, 41, 59, 0.5);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(71, 85, 105, 0.8);
+            border-radius: 9999px;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        /* Ptable color scheme badges */
+        .ptable-alkali { background: rgba(239, 68, 68, 0.25); border-color: rgba(239, 68, 68, 0.6); color: #fca5a5; }
+        .ptable-alkaline { background: rgba(249, 115, 22, 0.25); border-color: rgba(249, 115, 22, 0.6); color: #fdba74; }
+        .ptable-transition { background: rgba(234, 179, 8, 0.25); border-color: rgba(234, 179, 8, 0.6); color: #fde047; }
+        .ptable-post-transition { background: rgba(59, 130, 246, 0.25); border-color: rgba(59, 130, 246, 0.6); color: #93c5fd; }
+        .ptable-metalloid { background: rgba(20, 184, 166, 0.25); border-color: rgba(20, 184, 166, 0.6); color: #5eead4; }
+        .ptable-nonmetal { background: rgba(34, 197, 94, 0.25); border-color: rgba(34, 197, 94, 0.6); color: #86efac; }
+        .ptable-halogen { background: rgba(168, 85, 247, 0.25); border-color: rgba(168, 85, 247, 0.6); color: #d8b4fe; }
+        .ptable-noble { background: rgba(236, 72, 153, 0.25); border-color: rgba(236, 72, 153, 0.6); color: #f9a8d4; }
+    </style>
+</head>
+<body class="h-full flex flex-col font-sans bg-slate-950 text-slate-100 overflow-x-hidden selection:bg-brand-500 selection:text-slate-950">
+    <!-- Navigation / Header -->
+    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center text-slate-950 font-bold shadow-lg shadow-brand-500/20">
+                    <i data-lucide="atom" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+                        Quantum Config Lab
+                    </h1>
+                    <p class="text-xs text-brand-400 font-medium flex items-center gap-1">
+                        <span class="w-2 h-2 rounded-full bg-brand-500 inline-block animate-ping"></span>
+                        Prepa Anáhuac • Chemistry I
+                    </p>
+                </div>
+            </div>
+            <!-- Header Controls & Student Report Access -->
+            <div class="flex items-center space-x-2 sm:space-x-3">
+                <!-- Student Name Input -->
+                <div class="flex items-center gap-2 bg-slate-800/90 border border-slate-700/80 px-3 py-1.5 rounded-xl text-xs">
+                    <i data-lucide="user-check" class="w-4 h-4 text-brand-400"></i>
+                    <input type="text" id="student-name-input" placeholder="Student Full Name..." 
+                           class="bg-transparent text-slate-100 placeholder-slate-500 font-medium outline-none w-28 sm:w-44 focus:w-52 transition-all duration-300">
+                </div>
+                <!-- Session Timer -->
+                <div class="hidden sm:flex items-center gap-2 bg-slate-800/90 border border-slate-700/80 px-3 py-1.5 rounded-xl text-xs font-mono">
+                    <i data-lucide="clock" class="w-4 h-4 text-brand-400 animate-pulse"></i>
+                    <span id="session-timer-display" class="font-bold text-white">00:00</span>
+                </div>
+                <!-- Streak & Solved Counters -->
+                <div class="hidden md:flex items-center space-x-3 bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700/60 text-xs">
+                    <div class="flex items-center gap-1.5 text-amber-400">
+                        <i data-lucide="zap" class="w-4 h-4"></i>
+                        <span>Streak: <strong id="streak-counter" class="text-white">0</strong></span>
+                    </div>
+                    <div class="h-4 w-px bg-slate-700"></div>
+                    <div class="flex items-center gap-1.5 text-emerald-400">
+                        <i data-lucide="award" class="w-4 h-4"></i>
+                        <span>Answered: <strong id="solved-counter" class="text-white">0</strong></span>
+                    </div>
+                </div>
+                <!-- Periodic Table Button -->
+                <button id="btn-ptable-modal" class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-indigo-300 text-xs font-medium transition cursor-pointer">
+                    <i data-lucide="table" class="w-4 h-4"></i>
+                    <span>Ptable</span>
+                </button>
+                <!-- Aufbau Diagonal Rule Button -->
+                <button id="btn-aufbau-modal" class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-200 transition cursor-pointer">
+                    <i data-lucide="layers" class="w-4 h-4 text-brand-400"></i>
+                    <span>Diagonal</span>
+                </button>
+                <!-- Student Report Button -->
+                <button id="btn-open-student-report" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 text-xs font-semibold transition cursor-pointer" title="View & Export Student Report">
+                    <i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-400"></i>
+                    <span class="hidden sm:inline">My Lab Report</span>
+                </button>
+                <button id="btn-sound-toggle" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition cursor-pointer" title="Toggle Sound">
+                    <i data-lucide="volume-2" id="icon-sound" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Grid -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Left Column: Controls & Target Species Card (4 Cols) -->
+        <section class="lg:col-span-4 flex flex-col gap-5">
+            
+            <!-- Target Species Card -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl relative overflow-hidden">
+                <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-brand-500/5 rounded-full blur-2xl"></div>
+                
+                <div class="flex items-start justify-between">
+                    <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-brand-500/10 text-brand-400 border border-brand-500/20">
+                        Elements (Z 1-36)
+                    </span>
+                    <button id="btn-next-element" class="flex items-center gap-1 text-xs text-brand-400 hover:text-brand-300 font-medium transition group cursor-pointer">
+                        <span>New Problem</span>
+                        <i data-lucide="rotate-cw" class="w-3.5 h-3.5 group-hover:rotate-180 transition-transform duration-500"></i>
+                    </button>
+                </div>
+                <!-- Element Tile Display -->
+                <div class="my-4 flex items-center justify-around bg-slate-950/70 p-4 rounded-xl border border-slate-800/80">
+                    <div id="element-square" class="w-28 h-32 rounded-xl border-2 border-brand-500/40 bg-slate-900 flex flex-col justify-between p-2 shadow-lg text-center relative hover:border-brand-400 transition">
+                        <div class="text-left text-xs font-mono text-slate-400 flex justify-between">
+                            <span id="element-z" class="text-brand-400 font-bold">Z = 1</span>
+                            <span id="element-mass" class="text-[10px] text-slate-500">1.008</span>
+                        </div>
+                        <div id="element-symbol" class="text-4xl font-black text-white font-mono tracking-wider">H</div>
+                        <div id="element-name" class="text-xs font-medium text-brand-300 truncate">Hydrogen</div>
+                    </div>
+                    <div class="space-y-2 text-xs flex-1 ml-4">
+                        <div class="bg-slate-900/90 p-2.5 rounded-lg border border-slate-800">
+                            <span class="text-slate-400 block text-[10px] uppercase tracking-wider font-semibold">Chemical Species:</span>
+                            <span id="species-type" class="font-bold text-slate-200 text-sm block mt-0.5">Neutral Atom</span>
+                        </div>
+                        
+                        <button id="btn-quick-open-ptable" class="w-full text-left p-2 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-[11px] font-medium flex items-center justify-between transition cursor-pointer">
+                            <span>🔍 Periodic Table Reference</span>
+                            <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <!-- Pedagogical Hints Box -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex-1 flex flex-col">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                    <div class="flex items-center gap-2 text-amber-400">
+                        <i data-lucide="lightbulb" class="w-5 h-5"></i>
+                        <h3 class="font-bold text-sm text-slate-100">Lab Assistant</h3>
+                    </div>
+                    <button id="btn-request-hint" class="px-3 py-1 rounded-full bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-semibold transition flex items-center gap-1 cursor-pointer">
+                        <i data-lucide="help-circle" class="w-3.5 h-3.5"></i>
+                        <span>Get Hint</span>
+                    </button>
+                </div>
+                <div id="hint-container" class="mt-4 flex-1 overflow-y-auto custom-scrollbar space-y-3 text-xs leading-relaxed text-slate-300 max-h-[220px]">
+                    <div class="p-3 rounded-xl bg-slate-950/80 border border-slate-800 text-slate-400 italic">
+                        👋 Welcome! Look up the element in the Periodic Table to determine its atomic number Z and calculate the total number of electrons. If you get stuck, click <strong>"Get Hint"</strong>.
+                    </div>
+                </div>
+                <div class="mt-4 pt-3 border-t border-slate-800/80 text-[10px] text-slate-500 flex items-center gap-1.5">
+                    <i data-lucide="shield-check" class="w-4 h-4 text-emerald-500 shrink-0"></i>
+                    <span>Socratic Learning Policy: Guiding critical thinking step-by-step.</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Column: Interactive Practice Modes (8 Cols) -->
+        <section class="lg:col-span-8 flex flex-col gap-5">
+            
+            <!-- Mode Switcher Tabs -->
+            <div class="bg-slate-900 p-1.5 rounded-2xl border border-slate-800 flex flex-wrap sm:flex-nowrap gap-2">
+                <button id="tab-mode-1" class="mode-tab flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 bg-brand-600 text-white shadow-lg transition cursor-pointer">
+                    <i data-lucide="binary" class="w-4 h-4"></i>
+                    <span>1. Full Config</span>
+                </button>
+                <button id="tab-mode-2" class="mode-tab flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 bg-slate-800 text-slate-400 hover:text-slate-200 transition cursor-pointer">
+                    <i data-lucide="shrink" class="w-4 h-4"></i>
+                    <span>2. Abbreviated (Noble Gas)</span>
+                </button>
+                <button id="tab-mode-3" class="mode-tab flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 bg-slate-800 text-slate-400 hover:text-slate-200 transition cursor-pointer">
+                    <i data-lucide="grid" class="w-4 h-4"></i>
+                    <span>3. Orbital Diagram</span>
+                </button>
+            </div>
+            <!-- Workspace Area -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl flex-1 flex flex-col justify-between">
+                
+                <!-- MODE 1: Full Configuration -->
+                <div id="panel-mode-1" class="mode-panel space-y-6">
+                    <div>
+                        <h2 class="text-base font-bold text-white flex items-center gap-2">
+                            <span>Write the Full Ground-State Electron Configuration</span>
+                            <span class="text-xs font-normal text-slate-400">(e.g., 1s2 2s2 2p6 or 1s^2 2s^2 2p^6)</span>
+                        </h2>
+                        <p class="text-xs text-slate-400 mt-1">Use standard digits or carets (^); they will automatically convert to exponents in live preview.</p>
+                    </div>
+                    <div class="space-y-3">
+                        <div class="relative">
+                            <input type="text" id="input-full-config" placeholder="Enter configuration here (e.g., 1s2 2s2 2p6 3s1)" 
+                                   class="w-full bg-slate-950 border border-slate-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 text-white font-mono text-base sm:text-lg px-4 py-3 rounded-xl outline-none transition tracking-wide">
+                            <button id="btn-clear-mode-1" class="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-slate-500 hover:text-slate-300 transition cursor-pointer" title="Clear">
+                                <i data-lucide="x-circle" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                        <!-- Superscript Preview -->
+                        <div class="p-3 bg-slate-950/50 rounded-xl border border-slate-800 flex items-center justify-between">
+                            <span class="text-xs text-slate-500">Scientific Superscript Preview:</span>
+                            <div id="preview-full-config" class="font-mono text-brand-300 text-base font-semibold tracking-wider">
+                                (Empty)
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Subshell Quick Keypad -->
+                    <div class="space-y-2">
+                        <span class="text-xs font-semibold text-slate-400 block">Quick Subshell Insertion Pad:</span>
+                        <div class="flex flex-wrap gap-2" id="keypad-subshells">
+                            <!-- Injected dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MODE 2: Abbreviated Noble Gas Configuration -->
+                <div id="panel-mode-2" class="mode-panel hidden space-y-6">
+                    <div>
+                        <h2 class="text-base font-bold text-white">Abbreviated Configuration (Noble Gas Core)</h2>
+                        <p class="text-xs text-slate-400 mt-1">Identify the preceding Noble Gas symbol from the Periodic Table, then append the valence subshells.</p>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+                            <!-- Noble Gas Core Symbol Input -->
+                            <div class="sm:col-span-5 space-y-1.5">
+                                <label class="text-xs font-semibold text-slate-400 block">1. Noble Gas Core Symbol:</label>
+                                <div class="flex items-center bg-slate-950 px-3 py-2.5 rounded-xl border border-slate-700">
+                                    <span class="font-mono text-brand-400 font-bold mr-1">[</span>
+                                    <input type="text" id="input-noble-symbol" placeholder="e.g. Ne, Ar, Kr" 
+                                           class="w-full bg-transparent text-brand-300 font-mono font-bold text-base outline-none uppercase">
+                                    <span class="font-mono text-brand-400 font-bold ml-1">]</span>
+                                </div>
+                            </div>
+                            <!-- Valence Subshells Input -->
+                            <div class="sm:col-span-7 space-y-1.5">
+                                <label class="text-xs font-semibold text-slate-400 block">2. Valence Subshells:</label>
+                                <input type="text" id="input-valence-config" placeholder="e.g. 4s2 3d10 4p5" 
+                                       class="w-full bg-slate-950 border border-slate-700 text-white font-mono text-base px-3 py-2.5 rounded-xl outline-none">
+                            </div>
+                        </div>
+                        <!-- Live Preview -->
+                        <div class="p-3 bg-slate-950/50 rounded-xl border border-slate-800 flex items-center justify-between">
+                            <span class="text-xs text-slate-500">Built Abbreviated Notation:</span>
+                            <div id="preview-abbrev-config" class="font-mono text-brand-300 text-base font-semibold">
+                                [?]
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MODE 3: Interactive Student-Built Orbital Diagram -->
+                <div id="panel-mode-3" class="mode-panel hidden space-y-5">
+                    <div class="flex items-center justify-between flex-wrap gap-2">
+                        <div>
+                            <h2 class="text-base font-bold text-white">Orbital Box Diagram Builder</h2>
+                            <p class="text-xs text-slate-400 mt-1">Add required sublevel boxes, then click boxes to cycle electron spins (↑, ↑↓, empty)!</p>
+                        </div>
+                        <button id="btn-reset-orbitals" class="text-xs px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center gap-1 transition cursor-pointer">
+                            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                            <span>Reset Diagram</span>
+                        </button>
+                    </div>
+                    <!-- Custom Orbital Box Selection Controls -->
+                    <div class="p-3.5 bg-slate-950/90 rounded-xl border border-slate-800 space-y-3">
+                        <span class="text-xs font-bold text-brand-400 block uppercase tracking-wider">Step 1: Select Sublevel & Custom Number of Orbital Boxes</span>
+                        
+                        <div class="flex flex-wrap items-center gap-3 text-xs">
+                            <label class="text-slate-400 font-medium">Sublevel Name:</label>
+                            <select id="select-subshell-name" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono font-bold outline-none cursor-pointer">
+                                <option value="1s">1s</option>
+                                <option value="2s">2s</option>
+                                <option value="2p">2p</option>
+                                <option value="3s">3s</option>
+                                <option value="3p">3p</option>
+                                <option value="4s">4s</option>
+                                <option value="3d">3d</option>
+                                <option value="4p">4p</option>
+                                <option value="5s">5s</option>
+                                <option value="4d">4d</option>
+                                <option value="5p">5p</option>
+                                <option value="6s">6s</option>
+                            </select>
+                            <label class="text-slate-400 font-medium ml-2">Number of Boxes:</label>
+                            <input type="number" id="input-orbital-count" min="1" max="10" value="1"
+                                   class="w-16 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-amber-300 font-mono font-bold text-center outline-none focus:border-amber-400">
+                            <button id="btn-add-subshell-box" class="px-3 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-semibold flex items-center gap-1 transition ml-auto cursor-pointer">
+                                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                                <span>Add Sublevel</span>
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Interactive Diagram Scroll Container -->
+                    <div id="orbitals-interactive-grid" class="p-4 bg-slate-950/80 rounded-xl border border-slate-800 min-h-[180px] max-h-[320px] overflow-y-auto custom-scrollbar flex flex-wrap gap-5 items-center justify-start">
+                        <!-- Added dynamically by user -->
+                    </div>
+                    <!-- Placed Electron Counter -->
+                    <div class="p-3 bg-slate-950/60 rounded-xl border border-slate-800 flex items-center justify-between text-xs">
+                        <span class="text-slate-400">Total electron spins currently placed in boxes:</span>
+                        <div class="font-mono text-sm">
+                            <strong id="orbital-placed-count" class="text-brand-400">0</strong>
+                            <span class="text-slate-500"> e⁻</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Verification & Student Submission Action Footer -->
+                <div class="pt-6 border-t border-slate-800/80 flex flex-col space-y-3">
+                    <div id="feedback-banner" class="w-full p-3 rounded-xl text-xs font-medium hidden">
+                        <!-- Dynamic verification feedback -->
+                    </div>
+                    <div class="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full justify-between">
+                        <button id="btn-check-answer" class="flex-1 px-5 py-3 rounded-xl bg-gradient-to-r from-brand-600 to-emerald-500 hover:from-brand-500 hover:to-emerald-400 text-slate-950 font-bold text-sm shadow-lg shadow-brand-500/20 transition flex items-center justify-center gap-2 group cursor-pointer">
+                            <i data-lucide="check-circle" class="w-4 h-4"></i>
+                            <span>Check Solution</span>
+                        </button>
+                        <button id="btn-record-result" class="flex-1 px-5 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm shadow-lg shadow-emerald-500/20 transition flex items-center justify-center gap-2 cursor-pointer">
+                            <i data-lucide="file-plus" class="w-4 h-4"></i>
+                            <span>Record & Save to Report</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- MODAL: Student Performance Report & Excel Export -->
+    <div id="modal-student-report" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-5xl w-full p-6 shadow-2xl relative space-y-5 max-h-[92vh] flex flex-col">
+            <button id="btn-close-student-report" class="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-white rounded-lg bg-slate-800 transition z-10 cursor-pointer">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+            <div class="flex flex-wrap items-center justify-between gap-3 pr-8">
+                <div class="flex items-center gap-2 text-emerald-400">
+                    <i data-lucide="file-spreadsheet" class="w-6 h-6"></i>
+                    <div>
+                        <h3 class="font-bold text-lg text-white">Student Activity & Performance Report</h3>
+                        <p class="text-xs text-slate-400">Review your solved problems and export an Excel-compatible report file for your teacher.</p>
+                    </div>
+                </div>
+                <!-- Download Excel File Button -->
+                <button id="btn-export-excel-mac" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-slate-950 font-bold text-xs flex items-center gap-2 shadow-lg shadow-emerald-600/20 transition cursor-pointer">
+                    <i data-lucide="download" class="w-4 h-4"></i>
+                    <span>Download Excel File (.csv / .xls)</span>
+                </button>
+            </div>
+            <!-- Report Notice Banner -->
+            <div id="report-modal-notice" class="hidden p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs"></div>
+            <!-- Stats Breakdown Summary Cards -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800">
+                    <span class="text-slate-400 block text-[11px]">Total Answered Questions</span>
+                    <strong id="stat-total-answered" class="text-2xl font-bold text-white mt-1 block">0</strong>
+                </div>
+                <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800">
+                    <span class="text-slate-400 block text-[11px]">1. Full Configuration</span>
+                    <strong id="stat-full-config" class="text-xl font-bold text-brand-400 mt-1 block">0</strong>
+                </div>
+                <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800">
+                    <span class="text-slate-400 block text-[11px]">2. Abbreviated Notation</span>
+                    <strong id="stat-abbrev-config" class="text-xl font-bold text-indigo-400 mt-1 block">0</strong>
+                </div>
+                <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800">
+                    <span class="text-slate-400 block text-[11px]">3. Orbital Diagrams</span>
+                    <strong id="stat-orbital-diagram" class="text-xl font-bold text-amber-400 mt-1 block">0</strong>
+                </div>
+            </div>
+            <!-- Secondary Accuracy Stats -->
+            <div class="p-3 bg-slate-950/70 rounded-xl border border-slate-800/80 flex flex-wrap justify-between items-center text-xs gap-2">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="user" class="w-4 h-4 text-brand-400"></i>
+                    <span class="text-slate-300">Student: <strong id="report-student-display" class="text-white font-bold">Anonymous</strong></span>
+                </div>
+                <div class="flex items-center gap-4">
+                    <span class="text-slate-400">Correct Answers: <strong id="report-correct-count" class="text-emerald-400 font-bold">0</strong></span>
+                    <span class="text-slate-400">Accuracy Rate: <strong id="report-accuracy-rate" class="text-amber-300 font-bold">0%</strong></span>
+                </div>
+            </div>
+            <!-- Table of Logged Answers -->
+            <div class="flex-1 overflow-auto custom-scrollbar bg-slate-950 rounded-xl border border-slate-800">
+                <table class="w-full text-left text-xs font-mono border-collapse">
+                    <thead class="bg-slate-900 border-b border-slate-800 sticky top-0 text-slate-400 uppercase tracking-wider">
+                        <tr>
+                            <th class="p-3">#</th>
+                            <th class="p-3">Time</th>
+                            <th class="p-3">Species</th>
+                            <th class="p-3">Question Type</th>
+                            <th class="p-3">Submitted Answer</th>
+                            <th class="p-3">Status</th>
+                            <th class="p-3 text-center">Hints</th>
+                        </tr>
+                    </thead>
+                    <tbody id="student-report-tbody" class="divide-y divide-slate-800/60 text-slate-200">
+                        <!-- Dynamically populated -->
+                    </tbody>
+                </table>
+            </div>
+            <!-- Footer Controls -->
+            <div class="flex items-center justify-between pt-2 border-t border-slate-800 text-xs">
+                <span class="text-slate-500">Formats: Compatible with Microsoft Excel for Mac & Windows.</span>
+                <button id="btn-clear-student-report" class="text-rose-400 hover:text-rose-300 font-medium flex items-center gap-1 cursor-pointer">
+                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                    <span>Reset My Local Progress</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 1: Interactive Periodic Table Reference -->
+    <div id="modal-ptable" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-6xl w-full p-6 shadow-2xl relative space-y-4 max-h-[92vh] flex flex-col">
+            <button id="btn-close-ptable" class="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-white rounded-lg bg-slate-800 transition z-10 cursor-pointer">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+            <div class="flex items-center justify-between gap-2 pr-8">
+                <div class="flex items-center gap-2 text-indigo-400">
+                    <i data-lucide="table" class="w-5 h-5"></i>
+                    <h3 class="font-bold text-base text-white">Periodic Table of Elements Reference</h3>
+                </div>
+                <!-- Toggle View Mode -->
+                <div class="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
+                    <button id="ptable-view-img-btn" class="px-3 py-1 rounded-lg bg-indigo-600 text-white font-medium transition cursor-pointer">
+                        🖼️ Visual Chart
+                    </button>
+                    <button id="ptable-view-grid-btn" class="px-3 py-1 rounded-lg text-slate-400 hover:text-white transition cursor-pointer">
+                        📊 Grid View
+                    </button>
+                </div>
+            </div>
+            <p class="text-xs text-slate-300">Look up element atomic numbers Z, mass numbers, block designations, and noble gas cores.</p>
+            <!-- Image View -->
+            <div id="ptable-img-container" class="flex-1 overflow-auto custom-scrollbar p-2 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-center min-h-[350px]">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/4/4d/Periodic_table_large.svg" 
+                     alt="Periodic Table Chart" 
+                     class="max-w-full h-auto rounded-lg shadow-md object-contain max-h-[60vh]"
+                     onerror="this.onerror=null; this.src='https://placehold.co/1000x600/0f172a/38bdf8?text=Periodic+Table+Reference+Chart';">
+            </div>
+            <!-- Complete 18-Column Ptable Layout Grid View -->
+            <div id="ptable-grid-container" class="hidden flex-1 overflow-auto custom-scrollbar p-3 bg-slate-950 rounded-xl border border-slate-800">
+                <div id="ptable-grid" class="grid grid-cols-18 gap-1 min-w-[850px] text-center font-mono text-[10px]">
+                    <!-- Injected dynamically via JS -->
+                </div>
+            </div>
+            <!-- Ptable Block & Series Color Legend -->
+            <div class="flex items-center justify-center text-[10px] pt-2 border-t border-slate-800 text-slate-300 flex-wrap gap-3">
+                <div class="flex items-center gap-1"><span class="w-3 h-3 rounded ptable-alkali border"></span> Alkali Metal</div>
+                <div class="flex items-center gap-1"><span class="w-3 h-3 rounded ptable-alkaline border"></span> Alkaline Earth</div>
+                <div class="flex items-center gap-1"><span class="w-3 h-3 rounded ptable-transition border"></span> Transition Metal</div>
+                <div class="flex items-center gap-1"><span class="w-3 h-3 rounded ptable-post-transition border"></span> Post-Transition</div>
+                <div class="flex items-center gap-1"><span class="w-3 h-3 rounded ptable-metalloid border"></span> Metalloid</div>
+                <div class="flex items-center gap-1"><span class="w-3 h-3 rounded ptable-nonmetal border"></span> Reactive Nonmetal</div>
+                <div class="flex items-center gap-1"><span class="w-3 h-3 rounded ptable-halogen border"></span> Halogen</div>
+                <div class="flex items-center gap-1"><span class="w-3 h-3 rounded ptable-noble border"></span> Noble Gas</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: Aufbau Diagonal Rule Guide -->
+    <div id="modal-aufbau" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl relative space-y-4">
+            <button id="btn-close-aufbau" class="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-white rounded-lg bg-slate-800 transition cursor-pointer">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+            <div class="flex items-center gap-2 text-brand-400">
+                <i data-lucide="layers" class="w-5 h-5"></i>
+                <h3 class="font-bold text-base text-white">Aufbau Principle (Diagonal Rule Diagram)</h3>
+            </div>
+            <p class="text-xs text-slate-300 leading-relaxed">
+                Electrons fill energy sublevels in order of increasing energy ($n + \ell$ rule). Follow the red diagonal arrows down-left:
+            </p>
+            <!-- Vector Graphic SVG Diagram -->
+            <div class="p-4 bg-slate-950 rounded-xl border border-slate-800 flex flex-col items-center justify-center">
+                <svg viewBox="0 0 500 320" class="w-full max-w-md h-auto">
+                    <!-- Level 1 -->
+                    <text x="70" y="40" fill="#3b82f6" font-family="monospace" font-weight="bold" font-size="16">1s</text>
+                    <!-- Level 2 -->
+                    <text x="70" y="80" fill="#3b82f6" font-family="monospace" font-weight="bold" font-size="16">2s</text>
+                    <text x="150" y="80" fill="#10b981" font-family="monospace" font-weight="bold" font-size="16">2p</text>
+                    <!-- Level 3 -->
+                    <text x="70" y="120" fill="#3b82f6" font-family="monospace" font-weight="bold" font-size="16">3s</text>
+                    <text x="150" y="120" fill="#10b981" font-family="monospace" font-weight="bold" font-size="16">3p</text>
+                    <text x="230" y="120" fill="#f59e0b" font-family="monospace" font-weight="bold" font-size="16">3d</text>
+                    <!-- Level 4 -->
+                    <text x="70" y="160" fill="#3b82f6" font-family="monospace" font-weight="bold" font-size="16">4s</text>
+                    <text x="150" y="160" fill="#10b981" font-family="monospace" font-weight="bold" font-size="16">4p</text>
+                    <text x="230" y="160" fill="#f59e0b" font-family="monospace" font-weight="bold" font-size="16">4d</text>
+                    <text x="310" y="160" fill="#ec4899" font-family="monospace" font-weight="bold" font-size="16">4f</text>
+                    <!-- Level 5 -->
+                    <text x="70" y="200" fill="#3b82f6" font-family="monospace" font-weight="bold" font-size="16">5s</text>
+                    <text x="150" y="200" fill="#10b981" font-family="monospace" font-weight="bold" font-size="16">5p</text>
+                    <text x="230" y="200" fill="#f59e0b" font-family="monospace" font-weight="bold" font-size="16">5d</text>
+                    <text x="310" y="200" fill="#ec4899" font-family="monospace" font-weight="bold" font-size="16">5f</text>
+                    <!-- Level 6 -->
+                    <text x="70" y="240" fill="#3b82f6" font-family="monospace" font-weight="bold" font-size="16">6s</text>
+                    <text x="150" y="240" fill="#10b981" font-family="monospace" font-weight="bold" font-size="16">6p</text>
+                    <text x="230" y="240" fill="#f59e0b" font-family="monospace" font-weight="bold" font-size="16">6d</text>
+                    <!-- Level 7 -->
+                    <text x="70" y="280" fill="#3b82f6" font-family="monospace" font-weight="bold" font-size="16">7s</text>
+                    <text x="150" y="280" fill="#10b981" font-family="monospace" font-weight="bold" font-size="16">7p</text>
+                    <!-- Diagonal Arrows -->
+                    <g stroke="#ef4444" stroke-width="2.5" marker-end="url(#arrow)" opacity="0.85">
+                        <line x1="100" y1="20" x2="60" y2="55" />
+                        <line x1="100" y1="60" x2="60" y2="95" />
+                        <line x1="180" y1="60" x2="60" y2="135" />
+                        <line x1="180" y1="100" x2="60" y2="175" />
+                        <line x1="260" y1="100" x2="60" y2="215" />
+                        <line x1="260" y1="140" x2="60" y2="255" />
+                        <line x1="340" y1="140" x2="60" y2="295" />
+                    </g>
+                    <defs>
+                        <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                            <path d="M 0 0 L 10 5 L 0 10 z" fill="#ef4444"/>
+                        </marker>
+                    </defs>
+                </svg>
+                <div class="pt-3 border-t border-slate-800 text-[11px] text-brand-400 font-semibold font-mono text-center">
+                    Sequence: 1s → 2s → 2p → 3s → 3p → 4s → 3d → 4p → 5s → 4d → 5p → 6s
+                </div>
+            </div>
+            <div class="p-3 bg-brand-500/10 border border-brand-500/20 rounded-xl text-[11px] text-brand-300">
+                <strong>💡 Rule Summary:</strong> Lower energy subshells fill completely before electrons begin occupying higher energy subshells.
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Application Core -->
+    <script>
+        let sessionSeconds = 0;
+        let timerInterval = null;
+        
+        // Database restricted strictly to standard neutral elements (Z = 1 to 36, standard Aufbau rules)
+        const ELEMENTS_DATABASE = [
+            { z: 1, symbol: 'H', name: 'Hydrogen', mass: 1.008, cat: 'nonmetal' },
+            { z: 2, symbol: 'He', name: 'Helium', mass: 4.0026, cat: 'noble' },
+            { z: 3, symbol: 'Li', name: 'Lithium', mass: 6.94, cat: 'alkali' },
+            { z: 4, symbol: 'Be', name: 'Beryllium', mass: 9.0122, cat: 'alkaline' },
+            { z: 5, symbol: 'B', name: 'Boron', mass: 10.81, cat: 'metalloid' },
+            { z: 6, symbol: 'C', name: 'Carbon', mass: 12.011, cat: 'nonmetal' },
+            { z: 7, symbol: 'N', name: 'Nitrogen', mass: 14.007, cat: 'nonmetal' },
+            { z: 8, symbol: 'O', name: 'Oxygen', mass: 15.999, cat: 'nonmetal' },
+            { z: 9, symbol: 'F', name: 'Fluorine', mass: 18.998, cat: 'halogen' },
+            { z: 10, symbol: 'Ne', name: 'Neon', mass: 20.180, cat: 'noble' },
+            { z: 11, symbol: 'Na', name: 'Sodium', mass: 22.990, cat: 'alkali' },
+            { z: 12, symbol: 'Mg', name: 'Magnesium', mass: 24.305, cat: 'alkaline' },
+            { z: 13, symbol: 'Al', name: 'Aluminium', mass: 26.982, cat: 'post-transition' },
+            { z: 14, symbol: 'Si', name: 'Silicon', mass: 28.085, cat: 'metalloid' },
+            { z: 15, symbol: 'P', name: 'Phosphorus', mass: 30.974, cat: 'nonmetal' },
+            { z: 16, symbol: 'S', name: 'Sulfur', mass: 32.06, cat: 'nonmetal' },
+            { z: 17, symbol: 'Cl', name: 'Chlorine', mass: 35.45, cat: 'halogen' },
+            { z: 18, symbol: 'Ar', name: 'Argon', mass: 39.948, cat: 'noble' },
+            { z: 19, symbol: 'K', name: 'Potassium', mass: 39.098, cat: 'alkali' },
+            { z: 20, symbol: 'Ca', name: 'Calcium', mass: 40.078, cat: 'alkaline' },
+            { z: 21, symbol: 'Sc', name: 'Scandium', mass: 44.956, cat: 'transition' },
+            { z: 22, symbol: 'Ti', name: 'Titanium', mass: 47.867, cat: 'transition' },
+            { z: 23, symbol: 'V', name: 'Vanadium', mass: 50.942, cat: 'transition' },
+            { z: 25, symbol: 'Mn', name: 'Manganese', mass: 54.938, cat: 'transition' },
+            { z: 26, symbol: 'Fe', name: 'Iron', mass: 55.845, cat: 'transition' },
+            { z: 27, symbol: 'Co', name: 'Cobalt', mass: 58.933, cat: 'transition' },
+            { z: 28, symbol: 'Ni', name: 'Nickel', mass: 58.693, cat: 'transition' },
+            { z: 30, symbol: 'Zn', name: 'Zinc', mass: 65.38, cat: 'transition' },
+            { z: 31, symbol: 'Ga', name: 'Gallium', mass: 69.723, cat: 'post-transition' },
+            { z: 32, symbol: 'Ge', name: 'Germanium', mass: 72.630, cat: 'metalloid' },
+            { z: 33, symbol: 'As', name: 'Arsenic', mass: 74.922, cat: 'metalloid' },
+            { z: 34, symbol: 'Se', name: 'Selenium', mass: 78.971, cat: 'nonmetal' },
+            { z: 35, symbol: 'Br', name: 'Bromine', mass: 79.904, cat: 'halogen' },
+            { z: 36, symbol: 'Kr', name: 'Krypton', mass: 83.798, cat: 'noble' }
+        ];
+
+        const AUFBAU_ORDER = [
+            { name: '1s', max: 2, orbitals: 1, type: 's' },
+            { name: '2s', max: 2, orbitals: 1, type: 's' },
+            { name: '2p', max: 6, orbitals: 3, type: 'p' },
+            { name: '3s', max: 2, orbitals: 1, type: 's' },
+            { name: '3p', max: 6, orbitals: 3, type: 'p' },
+            { name: '4s', max: 2, orbitals: 1, type: 's' },
+            { name: '3d', max: 10, orbitals: 5, type: 'd' },
+            { name: '4p', max: 6, orbitals: 3, type: 'p' },
+            { name: '5s', max: 2, orbitals: 1, type: 's' },
+            { name: '4d', max: 10, orbitals: 5, type: 'd' },
+            { name: '5p', max: 6, orbitals: 3, type: 'p' },
+            { name: '6s', max: 2, orbitals: 1, type: 's' }
+        ];
+
+        const NOBLE_GAS_CORES = {
+            'HE': { z: 2, subshells: '1s²' },
+            'NE': { z: 10, subshells: '1s² 2s² 2p⁶' },
+            'AR': { z: 18, subshells: '1s² 2s² 2p⁶ 3s² 3p⁶' },
+            'KR': { z: 36, subshells: '1s² 2s² 2p⁶ 3s² 3p⁶ 4s² 3d¹⁰ 4p⁶' }
+        };
+
+        let currentElement = null;
+        let targetElectrons = 1;
+        let currentMode = 1; // 1: Full Config, 2: Abbreviated, 3: Orbital Diagram
+        let userSubshellGroups = [];
+        let hintCount = 0;
+        let streak = 0;
+        let soundEnabled = true;
+
+        // Student Local Activity Log
+        let studentAnswersLog = JSON.parse(localStorage.getItem('quantum_lab_student_report') || '[]');
+
+        const SUPERSCRIPTS = {
+            '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', 
+            '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹'
+        };
+
+        function toSuperscript(num) {
+            return String(num).split('').map(char => SUPERSCRIPTS[char] || char).join('');
+        }
+
+        // Audio Feedback Synthesizer
+        function playAudioTone(freq, duration, type = 'sine') {
+            if (!soundEnabled) return;
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return;
+                const ctx = new AudioCtx();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = type;
+                osc.frequency.value = freq;
+                gain.gain.setValueAtTime(0.08, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + duration);
+            } catch (e) {}
+        }
+        function playAudioClick() { playAudioTone(440, 0.08, 'sine'); }
+        function playAudioSuccess() { 
+            playAudioTone(523.25, 0.1, 'sine');
+            setTimeout(() => playAudioTone(659.25, 0.1, 'sine'), 100);
+            setTimeout(() => playAudioTone(783.99, 0.2, 'sine'), 200);
+        }
+        function playAudioError() { 
+            playAudioTone(220, 0.15, 'sawtooth');
+            setTimeout(() => playAudioTone(180, 0.2, 'sawtooth'), 120);
+        }
+        function playAudioHint() { playAudioTone(587.33, 0.12, 'triangle'); }
+
+        // Standard Ground-State Aufbau Logic for Neutral Elements
+        function getScientificGroundTruth(z) {
+            let totalE = z;
+            let result = [];
+            let eRemaining = totalE;
+            for (let sub of AUFBAU_ORDER) {
+                if (eRemaining <= 0) break;
+                let add = Math.min(eRemaining, sub.max);
+                result.push({
+                    name: `${sub.name}${add}`,
+                    sublevel: sub.name,
+                    count: add,
+                    max: sub.max,
+                    orbitals: sub.orbitals
+                });
+                eRemaining -= add;
+            }
+            return result;
+        }
+
+        function parseConfigString(input) {
+            if (!input) return [];
+            let clean = input
+                .replace(/[\^]/g, '') // remove carets like ^2 -> 2
+                .replace(/[,;]/g, ' ') // replace punctuation with space
+                .replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹]/g, m => ({'⁰':'0','¹':'1','²':'2','³':'3','⁴':'4','⁵':'5','⁶':'6','⁷':'7','⁸':'8','⁹':'9'}[m]))
+                .trim();
+            const regex = /([1-7][spdf])\s*(\d+)?/gi;
+            let matches = [];
+            let match;
+            while ((match = regex.exec(clean)) !== null) {
+                let sub = match[1].toLowerCase();
+                let count = match[2] ? parseInt(match[2], 10) : 1;
+                matches.push({ sublevel: sub, count: count });
+            }
+
+            // Normalize & combine duplicate subshell inputs (e.g. 2p2 2p4 -> 2p6)
+            let combined = [];
+            for (let item of matches) {
+                let existing = combined.find(c => c.sublevel === item.sublevel);
+                if (existing) {
+                    existing.count += item.count;
+                } else {
+                    combined.push({ sublevel: item.sublevel, count: item.count });
+                }
+            }
+            return combined;
+        }
+
+        function compareConfigurations(userArr, targetArr) {
+            if (userArr.length === 0) {
+                return { correct: false, message: 'Please enter an electron configuration.' };
+            }
+            let userTotal = userArr.reduce((sum, item) => sum + item.count, 0);
+            let targetTotal = targetArr.reduce((sum, item) => sum + item.count, 0);
+            if (userTotal !== targetTotal) {
+                return { 
+                    correct: false, 
+                    message: `Incorrect total electrons. Your input has ${userTotal} e⁻, but this atom requires ${targetTotal} e⁻.` 
+                };
+            }
+            for (let item of userArr) {
+                let subType = item.sublevel.slice(-1);
+                let maxCap = subType === 's' ? 2 : subType === 'p' ? 6 : subType === 'd' ? 10 : 14;
+                if (item.count > maxCap) {
+                    return { 
+                        correct: false, 
+                        message: `Sublevel ${item.sublevel} cannot hold ${item.count} electrons (maximum capacity is ${maxCap}).` 
+                    };
+                }
+            }
+            if (userArr.length !== targetArr.length) {
+                return { correct: false, message: 'The number of occupied subshells does not match the target distribution.' };
+            }
+            for (let i = 0; i < targetArr.length; i++) {
+                if (userArr[i].sublevel !== targetArr[i].sublevel || userArr[i].count !== targetArr[i].count) {
+                    return { 
+                        correct: false, 
+                        message: `Discrepancy detected at subshell ${i + 1} (${userArr[i].sublevel}${toSuperscript(userArr[i].count)} vs target ${targetArr[i].sublevel}${toSuperscript(targetArr[i].count)}).` 
+                    };
+                }
+            }
+            return { correct: true, message: 'Perfect solution!' };
+        }
+
+        function getPrecedingNobleGas(z) {
+            if (z > 36) return 'KR';
+            if (z > 18) return 'AR';
+            if (z > 10) return 'NE';
+            if (z > 2) return 'HE';
+            return null; // Z <= 2 has no preceding noble gas core
+        }
+
+        function getValenceSubshells(groundTruth, nobleZ) {
+            let totalE = 0;
+            let valence = [];
+            for (let item of groundTruth) {
+                totalE += item.count;
+                if (totalE > nobleZ) {
+                    let overflow = totalE - nobleZ;
+                    let countInSub = Math.min(item.count, overflow);
+                    valence.push({ sublevel: item.sublevel, count: countInSub });
+                }
+            }
+            return valence;
+        }
+
+        function renderKeypad() {
+            const container = document.getElementById('keypad-subshells');
+            if (!container) return;
+            container.innerHTML = '';
+            const subshells = ['1s', '2s', '2p', '3s', '3p', '4s', '3d', '4p', '5s', '4d', '5p', '6s'];
+            subshells.forEach(sub => {
+                const btn = document.createElement('button');
+                btn.className = 'px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-brand-300 font-mono text-xs font-semibold border border-slate-700 transition cursor-pointer';
+                btn.textContent = `${sub}`;
+                btn.onclick = () => {
+                    const input = document.getElementById('input-full-config');
+                    input.value += (input.value ? ' ' : '') + `${sub}`;
+                    input.focus();
+                    updatePreviews();
+                    playAudioClick();
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        function updatePreviews() {
+            const fullInput = document.getElementById('input-full-config').value;
+            const previewFull = document.getElementById('preview-full-config');
+            if (previewFull) {
+                if (!fullInput.trim()) {
+                    previewFull.textContent = '(Empty)';
+                } else {
+                    let parsed = parseConfigString(fullInput);
+                    previewFull.textContent = parsed.map(p => `${p.sublevel}${toSuperscript(p.count)}`).join(' ') || fullInput;
+                }
+            }
+            const nobleSymbol = document.getElementById('input-noble-symbol').value.trim().toUpperCase() || '?';
+            const valenceInput = document.getElementById('input-valence-config').value;
+            const previewAbbrev = document.getElementById('preview-abbrev-config');
+            if (previewAbbrev) {
+                let parsedV = parseConfigString(valenceInput);
+                let formattedV = parsedV.map(p => `${p.sublevel}${toSuperscript(p.count)}`).join(' ');
+                previewAbbrev.textContent = `[${nobleSymbol}] ${formattedV}`;
+            }
+        }
+
+        function addStudentSubshellGroup() {
+            const subName = document.getElementById('select-subshell-name').value;
+            const countInput = document.getElementById('input-orbital-count');
+            let count = parseInt(countInput.value, 10);
+            if (isNaN(count) || count < 1) count = 1;
+            if (count > 14) count = 14;
+            userSubshellGroups.push({
+                name: subName,
+                boxes: Array(count).fill(0)
+            });
+            renderStudentOrbitalDiagram();
+            playAudioClick();
+        }
+
+        function renderStudentOrbitalDiagram() {
+            const container = document.getElementById('orbitals-interactive-grid');
+            if (!container) return;
+            container.innerHTML = '';
+            let totalPlaced = 0;
+            if (userSubshellGroups.length === 0) {
+                container.innerHTML = `
+                    <div class="w-full text-center text-xs text-slate-500 py-6">
+                        No sublevel boxes added yet. Select a sublevel above and click <strong>"Add Sublevel"</strong>.
+                    </div>
+                `;
+                document.getElementById('orbital-placed-count').textContent = '0';
+                return;
+            }
+            userSubshellGroups.forEach((group, gIdx) => {
+                const groupWrapper = document.createElement('div');
+                groupWrapper.className = 'flex flex-col items-center gap-1.5 p-2 bg-slate-900/90 rounded-xl border border-slate-800 animate-fadeIn';
+                const title = document.createElement('span');
+                title.className = 'font-mono text-xs font-bold text-brand-400';
+                title.textContent = group.name;
+                groupWrapper.appendChild(title);
+                const boxesRow = document.createElement('div');
+                boxesRow.className = 'flex items-center gap-1.5';
+                group.boxes.forEach((state, bIdx) => {
+                    totalPlaced += state;
+                    const box = document.createElement('div');
+                    box.className = 'orbital-box w-9 h-11 rounded-lg border-2 border-slate-700 bg-slate-950 flex items-center justify-center font-bold text-base cursor-pointer';
+                    if (state === 1) {
+                        box.className = 'orbital-box w-9 h-11 rounded-lg border-2 border-brand-500 bg-brand-500/10 text-brand-300 flex items-center justify-center font-bold text-base cursor-pointer';
+                        box.textContent = '↑';
+                    } else if (state === 2) {
+                        box.className = 'orbital-box w-9 h-11 rounded-lg border-2 border-amber-500 bg-amber-500/10 text-amber-300 flex items-center justify-center font-bold text-base cursor-pointer';
+                        box.textContent = '↑↓';
+                    } else {
+                        box.textContent = '';
+                    }
+                    box.onclick = () => {
+                        group.boxes[bIdx] = (group.boxes[bIdx] + 1) % 3;
+                        renderStudentOrbitalDiagram();
+                        playAudioClick();
+                    };
+                    boxesRow.appendChild(box);
+                });
+                groupWrapper.appendChild(boxesRow);
+                const delBtn = document.createElement('button');
+                delBtn.className = 'mt-1 text-[10px] text-slate-500 hover:text-rose-400 transition cursor-pointer';
+                delBtn.textContent = 'Remove';
+                delBtn.onclick = () => {
+                    userSubshellGroups.splice(gIdx, 1);
+                    renderStudentOrbitalDiagram();
+                    playAudioClick();
+                };
+                groupWrapper.appendChild(delBtn);
+                container.appendChild(groupWrapper);
+            });
+            document.getElementById('orbital-placed-count').textContent = totalPlaced;
+        }
+
+        function validateStudentOrbitalDiagram(groundTruth) {
+            if (userSubshellGroups.length === 0) {
+                return { correct: false, message: 'Please add orbital boxes and place electron spins.' };
+            }
+            let totalPlaced = userSubshellGroups.reduce((acc, g) => acc + g.boxes.reduce((a, b) => a + b, 0), 0);
+            let targetTotal = groundTruth.reduce((a, b) => a + b.count, 0);
+            if (totalPlaced !== targetTotal) {
+                return { 
+                    correct: false, 
+                    message: `You have placed ${totalPlaced} electrons in boxes, but target requires ${targetTotal} electrons.` 
+                };
+            }
+            if (userSubshellGroups.length !== groundTruth.length) {
+                return { correct: false, message: 'The number of sublevel box groups does not match the target subshells.' };
+            }
+            for (let i = 0; i < groundTruth.length; i++) {
+                let uGroup = userSubshellGroups[i];
+                let gTarget = groundTruth[i];
+                if (uGroup.name !== gTarget.sublevel) {
+                    return { correct: false, message: `Sublevel mismatch at position ${i + 1}: expected ${gTarget.sublevel}, got ${uGroup.name}.` };
+                }
+                let groupElectrons = uGroup.boxes.reduce((a, b) => a + b, 0);
+                if (groupElectrons !== gTarget.count) {
+                    return { correct: false, message: `Sublevel ${uGroup.name} has ${groupElectrons} e⁻, but target requires ${gTarget.count} e⁻.` };
+                }
+                if (gTarget.count < gTarget.orbitals * 2) {
+                    let pairs = uGroup.boxes.filter(b => b === 2).length;
+                    let empties = uGroup.boxes.filter(b => b === 0).length;
+                    if (empties > 0 && pairs > 0) {
+                        return { 
+                            correct: false, 
+                            message: `Hund's Rule Violation in ${uGroup.name}: Fill all degenerate orbitals singly before pairing electrons!` 
+                        };
+                    }
+                }
+            }
+            return { correct: true, message: 'Orbital diagram is completely correct!' };
+        }
+
+        function resetHintPanel() {
+            const container = document.getElementById('hint-container');
+            if (!container) return;
+            container.innerHTML = `
+                <div class="p-3 rounded-xl bg-slate-950/80 border border-slate-800 text-slate-400 italic">
+                    👋 Welcome! Look up <strong>${currentElement.name} (${currentElement.symbol})</strong> in the Periodic Table to find its atomic number Z and calculate its total electrons. If you get stuck, click <strong>"Get Hint"</strong>.
+                </div>
+            `;
+        }
+
+        function requestHint() {
+            hintCount++;
+            const container = document.getElementById('hint-container');
+            if (!container) return;
+            let hintText = "";
+            const groundTruth = getScientificGroundTruth(currentElement.z);
+            if (hintCount === 1) {
+                hintText = `💡 <strong>Hint Level 1 (Atomic Number Z):</strong><br>
+                Locate <strong>${currentElement.name} (${currentElement.symbol})</strong> on the Periodic Table. Its atomic number Z is <strong>${currentElement.z}</strong>, meaning a neutral atom has exactly <strong>${currentElement.z} electrons</strong>.`;
+            } else if (hintCount === 2) {
+                let firstSub = groundTruth[0]?.sublevel || '1s';
+                let lastSub = groundTruth[groundTruth.length - 1]?.sublevel || '';
+                hintText = `💡 <strong>Hint Level 2 (Sublevel Sequence):</strong><br>
+                Follow the Aufbau diagonal rule! Fill from <strong>${firstSub}</strong> upward. Your highest occupied sublevel for this element is <strong>${lastSub}</strong>.`;
+            } else if (hintCount === 3) {
+                hintText = `💡 <strong>Hint Level 3 (Orbital Capacity & Hund's Rule):</strong><br>
+                Remember: s holds up to 2 e⁻ (1 box), p holds up to 6 e⁻ (3 boxes), and d holds up to 10 e⁻ (5 boxes). In orbital diagrams, place single parallel spins (↑) across all degenerate boxes before pairing them!`;
+            } else {
+                hintText = `💡 <strong>Continuous Guide:</strong><br>
+                Click the <strong>"Diagonal Rule"</strong> button in the top navigation to view the exact filling order (1s → 2s → 2p → 3s → 3p ...).`;
+            }
+            const hintCard = document.createElement('div');
+            hintCard.className = 'p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200 animate-fadeIn space-y-1';
+            hintCard.innerHTML = hintText;
+            container.appendChild(hintCard);
+            container.scrollTop = container.scrollHeight;
+            playAudioHint();
+        }
+
+        function showFeedback(msg, type) {
+            const banner = document.getElementById('feedback-banner');
+            if (!banner) return;
+            banner.classList.remove('hidden');
+            if (type === 'success') {
+                banner.className = 'w-full p-3 rounded-xl text-xs font-medium bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 animate-fadeIn';
+            } else {
+                banner.className = 'w-full p-3 rounded-xl text-xs font-medium bg-rose-500/10 border border-rose-500/30 text-rose-300 animate-fadeIn';
+            }
+            banner.textContent = msg;
+        }
+
+        function hideFeedback() {
+            const banner = document.getElementById('feedback-banner');
+            if (banner) banner.classList.add('hidden');
+        }
+
+        function checkAnswer() {
+            const groundTruth = getScientificGroundTruth(currentElement.z);
+            let isCorrect = false;
+            let feedbackMsg = "";
+            if (currentMode === 1) {
+                const userInput = document.getElementById('input-full-config').value;
+                const parsedUser = parseConfigString(userInput);
+                const validation = compareConfigurations(parsedUser, groundTruth);
+                isCorrect = validation.correct;
+                feedbackMsg = validation.message;
+            } else if (currentMode === 2) {
+                const idealGas = getPrecedingNobleGas(currentElement.z);
+                if (!idealGas) {
+                    showFeedback(`${currentElement.name} (Z=${currentElement.z}) does not have a preceding Noble Gas core. Use Full Configuration (Mode 1) instead.`, 'error');
+                    return false;
+                }
+                const userGasSymbol = document.getElementById('input-noble-symbol').value.trim().toUpperCase();
+                if (!userGasSymbol) {
+                    showFeedback('Please enter the Noble Gas symbol (e.g. Ne, Ar, Kr).', 'error');
+                    return false;
+                }
+                const cleanSymbol = userGasSymbol.replace('[', '').replace(']', '').trim();
+                const gasCoreInfo = NOBLE_GAS_CORES[cleanSymbol];
+                if (!gasCoreInfo) {
+                    showFeedback(`"${cleanSymbol}" is not a recognized Noble Gas core symbol.`, 'error');
+                    return false;
+                }
+                if (cleanSymbol !== idealGas) {
+                    showFeedback(`[${cleanSymbol}] is not the noble gas immediately preceding this element in the periodic table.`, 'error');
+                    return false;
+                }
+                const userValenceInput = document.getElementById('input-valence-config').value;
+                const parsedValence = parseConfigString(userValenceInput);
+                const expectedValence = getValenceSubshells(groundTruth, gasCoreInfo.z);
+                const validation = compareConfigurations(parsedValence, expectedValence);
+                isCorrect = validation.correct;
+                feedbackMsg = validation.message;
+            } else if (currentMode === 3) {
+                const orbitalValidation = validateStudentOrbitalDiagram(groundTruth);
+                isCorrect = orbitalValidation.correct;
+                feedbackMsg = orbitalValidation.message;
+            }
+            if (isCorrect) {
+                streak++;
+                document.getElementById('streak-counter').textContent = streak;
+                showFeedback('🎉 Outstanding work! Your electron configuration is completely accurate.', 'success');
+                playAudioSuccess();
+                const container = document.getElementById('hint-container');
+                if (container) {
+                    const successCard = document.createElement('div');
+                    successCard.className = 'p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 font-medium animate-fadeIn';
+                    successCard.innerHTML = `🌟 <strong>Correct Solution!</strong> Excellent application of quantum principles. Click "Record & Save to Report" to register this result or "New Problem" to continue.`;
+                    container.appendChild(successCard);
+                    container.scrollTop = container.scrollHeight;
+                }
+            } else {
+                streak = 0;
+                document.getElementById('streak-counter').textContent = streak;
+                showFeedback(feedbackMsg || 'There is an error in your distribution. Re-check exponents or request a hint.', 'error');
+                playAudioError();
+            }
+            return isCorrect;
+        }
+
+        function recordResultToReport() {
+            const studentNameInput = document.getElementById('student-name-input');
+            const studentName = studentNameInput.value.trim() || 'Student';
+            const isCorrect = checkAnswer();
+            let submittedAnswerText = "";
+            let modeTypeLabel = "";
+            if (currentMode === 1) {
+                modeTypeLabel = "Full Configuration";
+                submittedAnswerText = document.getElementById('input-full-config').value || "Empty";
+            } else if (currentMode === 2) {
+                modeTypeLabel = "Abbreviated";
+                let core = document.getElementById('input-noble-symbol').value || "?";
+                let val = document.getElementById('input-valence-config').value || "";
+                submittedAnswerText = `[${core}] ${val}`;
+            } else if (currentMode === 3) {
+                modeTypeLabel = "Orbital Diagram";
+                submittedAnswerText = userSubshellGroups.map(g => `${g.name}(${g.boxes.join(',')})`).join(' ') || "Empty Diagram";
+            }
+            const speciesName = `${currentElement.symbol} (${currentElement.name})`;
+            const record = {
+                id: Date.now(),
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+                date: new Date().toLocaleDateString(),
+                studentName: studentName,
+                symbol: currentElement.symbol,
+                z: currentElement.z,
+                species: speciesName,
+                modeType: modeTypeLabel,
+                submittedAnswer: submittedAnswerText,
+                status: isCorrect ? 'CORRECT' : 'INCORRECT',
+                hintsUsed: hintCount
+            };
+            studentAnswersLog.unshift(record);
+            localStorage.setItem('quantum_lab_student_report', JSON.stringify(studentAnswersLog));
+            
+            document.getElementById('solved-counter').textContent = studentAnswersLog.length;
+            showFeedback(`✅ Answer recorded! Logged in your Student Performance Report (${studentAnswersLog.length} total saved).`, 'success');
+            playAudioSuccess();
+        }
+
+        function updateReportModalUI() {
+            const tbody = document.getElementById('student-report-tbody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            const studentName = document.getElementById('student-name-input').value.trim() || 'Student';
+            document.getElementById('report-student-display').textContent = studentName;
+            const total = studentAnswersLog.length;
+            const fullCount = studentAnswersLog.filter(q => q.modeType === 'Full Configuration').length;
+            const abbrevCount = studentAnswersLog.filter(q => q.modeType === 'Abbreviated').length;
+            const orbitalCount = studentAnswersLog.filter(q => q.modeType === 'Orbital Diagram').length;
+            const correctTotal = studentAnswersLog.filter(q => q.status === 'CORRECT').length;
+            const accuracy = total > 0 ? ((correctTotal / total) * 100).toFixed(1) : '0';
+            document.getElementById('stat-total-answered').textContent = total;
+            document.getElementById('stat-full-config').textContent = fullCount;
+            document.getElementById('stat-abbrev-config').textContent = abbrevCount;
+            document.getElementById('stat-orbital-diagram').textContent = orbitalCount;
+            document.getElementById('report-correct-count').textContent = correctTotal;
+            document.getElementById('report-accuracy-rate').textContent = `${accuracy}%`;
+            if (total === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="p-6 text-center text-slate-500 italic">
+                            No answered questions recorded yet. Solve questions and click "Record & Save to Report".
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            studentAnswersLog.forEach((item, index) => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-900/60 transition';
+                const badgeColor = item.status === 'CORRECT' 
+                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' 
+                    : 'bg-rose-500/10 text-rose-400 border-rose-500/30';
+                
+                tr.innerHTML = `
+                    <td class="p-3 text-slate-500 text-[11px]">${total - index}</td>
+                    <td class="p-3 text-slate-400 text-[11px]">${item.timestamp}</td>
+                    <td class="p-3 font-bold text-brand-300">${item.species} (Z=${item.z})</td>
+                    <td class="p-3 text-slate-200">${item.modeType}</td>
+                    <td class="p-3 text-amber-300 font-mono text-[11px] max-w-xs truncate">${item.submittedAnswer}</td>
+                    <td class="p-3">
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border ${badgeColor}">
+                            ${item.status}
+                        </span>
+                    </td>
+                    <td class="p-3 text-slate-300 text-center">${item.hintsUsed}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function exportReportToExcelForMac() {
+            const studentName = document.getElementById('student-name-input').value.trim() || 'Student';
+            const noticeEl = document.getElementById('report-modal-notice');
+            if (studentAnswersLog.length === 0) {
+                if (noticeEl) {
+                    noticeEl.classList.remove('hidden');
+                    noticeEl.textContent = '⚠️ No recorded answers found in your report. Complete some exercises and click "Record & Save to Report" first!';
+                }
+                return;
+            }
+            if (noticeEl) noticeEl.classList.add('hidden');
+
+            const total = studentAnswersLog.length;
+            const fullCount = studentAnswersLog.filter(q => q.modeType === 'Full Configuration').length;
+            const abbrevCount = studentAnswersLog.filter(q => q.modeType === 'Abbreviated').length;
+            const orbitalCount = studentAnswersLog.filter(q => q.modeType === 'Orbital Diagram').length;
+            const correctTotal = studentAnswersLog.filter(q => q.status === 'CORRECT').length;
+            const accuracy = total > 0 ? ((correctTotal / total) * 100).toFixed(1) : '0';
+            const sessionTimer = document.getElementById('session-timer-display').textContent;
+            
+            // UTF-8 Byte Order Mark (\uFEFF) ensures Excel on Mac opens accent characters and tables seamlessly
+            let fileContent = "\uFEFF";
+            // SECTION 1: REPORT HEADER & STUDENT METRICS
+            fileContent += "STUDENT VIRTUAL LAB PERFORMANCE REPORT\n";
+            fileContent += `Student Name:\t${studentName}\n`;
+            fileContent += `Date of Export:\t${new Date().toLocaleString()}\n`;
+            fileContent += `Session Duration:\t${sessionTimer}\n`;
+            fileContent += "\n";
+            // SECTION 2: REQUIRED STATISTICAL BREAKDOWN SUMMARY
+            fileContent += "STATISTICAL SUMMARY & QUESTION COUNTS\n";
+            fileContent += `Metric Description\tValue\n`;
+            fileContent += `Total Amount of Answered Questions\t${total}\n`;
+            fileContent += `Full Configuration Questions Answered\t${fullCount}\n`;
+            fileContent += `Abbreviated Configuration Questions Answered\t${abbrevCount}\n`;
+            fileContent += `Orbital Diagram Questions Answered\t${orbitalCount}\n`;
+            fileContent += `Total Correct Solutions\t${correctTotal}\n`;
+            fileContent += `Overall Accuracy Rate\t${accuracy}%\n`;
+            fileContent += "\n";
+            // SECTION 3: DETAILED LOG OF ANSWERED QUESTIONS
+            fileContent += "DETAILED ANSWERED QUESTIONS LOG\n";
+            fileContent += "#\tTimestamp\tChemical Species\tAtomic Number (Z)\tQuestion Type\tSubmitted Answer\tEvaluation Status\tHints Used\n";
+            studentAnswersLog.forEach((item, idx) => {
+                const lineNum = total - idx;
+                const cleanAnswer = item.submittedAnswer.replace(/"/g, '""');
+                fileContent += `${lineNum}\t"${item.timestamp}"\t"${item.species}"\t${item.z}\t"${item.modeType}"\t"${cleanAnswer}"\t"${item.status}"\t${item.hintsUsed}\n`;
+            });
+            
+            const blob = new Blob([fileContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const safeStudentName = studentName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+            a.href = url;
+            a.download = `Electron_Config_Report_${safeStudentName}_${new Date().toISOString().slice(0, 10)}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function generateExercise() {
+            currentElement = ELEMENTS_DATABASE[Math.floor(Math.random() * ELEMENTS_DATABASE.length)];
+            targetElectrons = currentElement.z;
+            hintCount = 0;
+            
+            document.getElementById('element-z').textContent = `Z = ${currentElement.z}`;
+            document.getElementById('element-mass').textContent = currentElement.mass.toFixed(2);
+            document.getElementById('element-symbol').textContent = currentElement.symbol;
+            document.getElementById('element-name').textContent = currentElement.name;
+            
+            const speciesEl = document.getElementById('species-type');
+            speciesEl.textContent = 'Neutral Atom';
+            speciesEl.className = 'font-bold text-slate-200 text-sm block mt-0.5';
+
+            document.getElementById('input-full-config').value = '';
+            document.getElementById('input-noble-symbol').value = '';
+            document.getElementById('input-valence-config').value = '';
+            
+            userSubshellGroups = [];
+            renderStudentOrbitalDiagram();
+            resetHintPanel();
+            hideFeedback();
+            updatePreviews();
+        }
+
+        function renderPeriodicTable() {
+            const container = document.getElementById('ptable-grid');
+            if (!container) return;
+            container.innerHTML = '';
+            const ptableLayout = [
+                { z: 1, sym: 'H', col: 1, row: 1, cat: 'nonmetal' },
+                { z: 2, sym: 'He', col: 18, row: 1, cat: 'noble' },
+                { z: 3, sym: 'Li', col: 1, row: 2, cat: 'alkali' },
+                { z: 4, sym: 'Be', col: 2, row: 2, cat: 'alkaline' },
+                { z: 5, sym: 'B', col: 13, row: 2, cat: 'metalloid' },
+                { z: 6, sym: 'C', col: 14, row: 2, cat: 'nonmetal' },
+                { z: 7, sym: 'N', col: 15, row: 2, cat: 'nonmetal' },
+                { z: 8, sym: 'O', col: 16, row: 2, cat: 'nonmetal' },
+                { z: 9, sym: 'F', col: 17, row: 2, cat: 'halogen' },
+                { z: 10, sym: 'Ne', col: 18, row: 2, cat: 'noble' },
+                { z: 11, sym: 'Na', col: 1, row: 3, cat: 'alkali' },
+                { z: 12, sym: 'Mg', col: 2, row: 3, cat: 'alkaline' },
+                { z: 13, sym: 'Al', col: 13, row: 3, cat: 'post-transition' },
+                { z: 14, sym: 'Si', col: 14, row: 3, cat: 'metalloid' },
+                { z: 15, sym: 'P', col: 15, row: 3, cat: 'nonmetal' },
+                { z: 16, sym: 'S', col: 16, row: 3, cat: 'nonmetal' },
+                { z: 17, sym: 'Cl', col: 17, row: 3, cat: 'halogen' },
+                { z: 18, sym: 'Ar', col: 18, row: 3, cat: 'noble' },
+                { z: 19, sym: 'K', col: 1, row: 4, cat: 'alkali' },
+                { z: 20, sym: 'Ca', col: 2, row: 4, cat: 'alkaline' },
+                { z: 21, sym: 'Sc', col: 3, row: 4, cat: 'transition' },
+                { z: 22, sym: 'Ti', col: 4, row: 4, cat: 'transition' },
+                { z: 23, sym: 'V', col: 5, row: 4, cat: 'transition' },
+                { z: 24, sym: 'Cr', col: 6, row: 4, cat: 'transition' },
+                { z: 25, sym: 'Mn', col: 7, row: 4, cat: 'transition' },
+                { z: 26, sym: 'Fe', col: 8, row: 4, cat: 'transition' },
+                { z: 27, sym: 'Co', col: 9, row: 4, cat: 'transition' },
+                { z: 28, sym: 'Ni', col: 10, row: 4, cat: 'transition' },
+                { z: 29, sym: 'Cu', col: 11, row: 4, cat: 'transition' },
+                { z: 30, sym: 'Zn', col: 12, row: 4, cat: 'transition' },
+                { z: 31, sym: 'Ga', col: 13, row: 4, cat: 'post-transition' },
+                { z: 32, sym: 'Ge', col: 14, row: 4, cat: 'metalloid' },
+                { z: 33, sym: 'As', col: 15, row: 4, cat: 'metalloid' },
+                { z: 34, symbol: 'Se', col: 16, row: 4, cat: 'nonmetal' },
+                { z: 35, sym: 'Br', col: 17, row: 4, cat: 'halogen' },
+                { z: 36, sym: 'Kr', col: 18, row: 4, cat: 'noble' }
+            ];
+            for (let r = 1; r <= 4; r++) {
+                for (let c = 1; c <= 18; c++) {
+                    const item = ptableLayout.find(e => e.row === r && e.col === c);
+                    const cell = document.createElement('div');
+                    if (item) {
+                        cell.className = `p-1 rounded border flex flex-col items-center justify-between h-11 transition hover:scale-105 cursor-pointer ptable-${item.cat}`;
+                        cell.innerHTML = `
+                            <span class="text-[9px] opacity-80">${item.z}</span>
+                            <span class="font-bold font-mono text-xs">${item.sym}</span>
+                        `;
+                    } else {
+                        cell.className = 'h-11';
+                    }
+                    container.appendChild(cell);
+                }
+            }
+        }
+
+        function openModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.remove('opacity-0', 'pointer-events-none');
+                modal.classList.add('opacity-100', 'pointer-events-auto');
+            }
+        }
+
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.remove('opacity-100', 'pointer-events-auto');
+                modal.classList.add('opacity-0', 'pointer-events-none');
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            renderKeypad();
+            renderPeriodicTable();
+            document.getElementById('solved-counter').textContent = studentAnswersLog.length;
+            
+            // Session Timer Initialization
+            timerInterval = setInterval(() => {
+                sessionSeconds++;
+                const mins = String(Math.floor(sessionSeconds / 60)).padStart(2, '0');
+                const secs = String(sessionSeconds % 60).padStart(2, '0');
+                const timerEl = document.getElementById('session-timer-display');
+                if (timerEl) timerEl.textContent = `${mins}:${secs}`;
+            }, 1000);
+
+            // Ptable View Toggles
+            const imgBtn = document.getElementById('ptable-view-img-btn');
+            const gridBtn = document.getElementById('ptable-view-grid-btn');
+            const imgContainer = document.getElementById('ptable-img-container');
+            const gridContainer = document.getElementById('ptable-grid-container');
+            if (imgBtn && gridBtn) {
+                imgBtn.onclick = () => {
+                    imgBtn.className = 'px-3 py-1 rounded-lg bg-indigo-600 text-white font-medium transition cursor-pointer';
+                    gridBtn.className = 'px-3 py-1 rounded-lg text-slate-400 hover:text-white transition cursor-pointer';
+                    imgContainer.classList.remove('hidden');
+                    gridContainer.classList.add('hidden');
+                };
+                gridBtn.onclick = () => {
+                    gridBtn.className = 'px-3 py-1 rounded-lg bg-indigo-600 text-white font-medium transition cursor-pointer';
+                    imgBtn.className = 'px-3 py-1 rounded-lg text-slate-400 hover:text-white transition cursor-pointer';
+                    gridContainer.classList.remove('hidden');
+                    imgContainer.classList.add('hidden');
+                };
+            }
+
+            // Mode Switching Handler
+            const tabs = [document.getElementById('tab-mode-1'), document.getElementById('tab-mode-2'), document.getElementById('tab-mode-3')];
+            const panels = [document.getElementById('panel-mode-1'), document.getElementById('panel-mode-2'), document.getElementById('panel-mode-3')];
+            tabs.forEach((tab, index) => {
+                if (tab) {
+                    tab.onclick = () => {
+                        currentMode = index + 1;
+                        tabs.forEach((t, i) => {
+                            if (i === index) {
+                                t.className = 'mode-tab flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 bg-brand-600 text-white shadow-lg transition cursor-pointer';
+                            } else {
+                                t.className = 'mode-tab flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 bg-slate-800 text-slate-400 hover:text-slate-200 transition cursor-pointer';
+                            }
+                        });
+                        panels.forEach((p, i) => {
+                            if (i === index) {
+                                p.classList.remove('hidden');
+                            } else {
+                                p.classList.add('hidden');
+                            }
+                        });
+                        hideFeedback();
+                        playAudioClick();
+                    };
+                }
+            });
+
+            // Input Listeners
+            const fullInput = document.getElementById('input-full-config');
+            if (fullInput) fullInput.addEventListener('input', updatePreviews);
+            
+            const nobleInput = document.getElementById('input-noble-symbol');
+            if (nobleInput) nobleInput.addEventListener('input', updatePreviews);
+            
+            const valenceInput = document.getElementById('input-valence-config');
+            if (valenceInput) valenceInput.addEventListener('input', updatePreviews);
+
+            const clearMode1 = document.getElementById('btn-clear-mode-1');
+            if (clearMode1) {
+                clearMode1.onclick = () => {
+                    document.getElementById('input-full-config').value = '';
+                    updatePreviews();
+                    playAudioClick();
+                };
+            }
+
+            // Action Buttons
+            const btnNext = document.getElementById('btn-next-element');
+            if (btnNext) btnNext.onclick = () => { generateExercise(); playAudioClick(); };
+
+            const btnHint = document.getElementById('btn-request-hint');
+            if (btnHint) btnHint.onclick = requestHint;
+
+            const btnCheck = document.getElementById('btn-check-answer');
+            if (btnCheck) btnCheck.onclick = checkAnswer;
+
+            const btnRecord = document.getElementById('btn-record-result');
+            if (btnRecord) btnRecord.onclick = recordResultToReport;
+
+            const btnAddBox = document.getElementById('btn-add-subshell-box');
+            if (btnAddBox) btnAddBox.onclick = addStudentSubshellGroup;
+
+            const btnResetOrbitals = document.getElementById('btn-reset-orbitals');
+            if (btnResetOrbitals) {
+                btnResetOrbitals.onclick = () => {
+                    userSubshellGroups = [];
+                    renderStudentOrbitalDiagram();
+                    playAudioClick();
+                };
+            }
+
+            // Modal Controls
+            const btnPtable = document.getElementById('btn-ptable-modal');
+            const btnQuickPtable = document.getElementById('btn-quick-open-ptable');
+            const btnClosePtable = document.getElementById('btn-close-ptable');
+            if (btnPtable) btnPtable.onclick = () => openModal('modal-ptable');
+            if (btnQuickPtable) btnQuickPtable.onclick = () => openModal('modal-ptable');
+            if (btnClosePtable) btnClosePtable.onclick = () => closeModal('modal-ptable');
+
+            const btnAufbau = document.getElementById('btn-aufbau-modal');
+            const btnCloseAufbau = document.getElementById('btn-close-aufbau');
+            if (btnAufbau) btnAufbau.onclick = () => openModal('modal-aufbau');
+            if (btnCloseAufbau) btnCloseAufbau.onclick = () => closeModal('modal-aufbau');
+
+            const btnOpenReport = document.getElementById('btn-open-student-report');
+            const btnCloseReport = document.getElementById('btn-close-student-report');
+            if (btnOpenReport) {
+                btnOpenReport.onclick = () => {
+                    updateReportModalUI();
+                    openModal('modal-student-report');
+                };
+            }
+            if (btnCloseReport) btnCloseReport.onclick = () => closeModal('modal-student-report');
+
+            // Backdrop click & Escape key modal dismissals
+            ['modal-ptable', 'modal-aufbau', 'modal-student-report'].forEach(modalId => {
+                const modal = document.getElementById(modalId);
+                if (modal) {
+                    modal.addEventListener('click', (e) => {
+                        if (e.target === modal) {
+                            closeModal(modalId);
+                        }
+                    });
+                }
+            });
+
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    closeModal('modal-ptable');
+                    closeModal('modal-aufbau');
+                    closeModal('modal-student-report');
+                }
+            });
+
+            const btnExportExcel = document.getElementById('btn-export-excel-mac');
+            if (btnExportExcel) btnExportExcel.onclick = exportReportToExcelForMac;
+
+            const btnClearReport = document.getElementById('btn-clear-student-report');
+            if (btnClearReport) {
+                btnClearReport.onclick = () => {
+                    studentAnswersLog = [];
+                    localStorage.removeItem('quantum_lab_student_report');
+                    updateReportModalUI();
+                    document.getElementById('solved-counter').textContent = '0';
+                    const noticeEl = document.getElementById('report-modal-notice');
+                    if (noticeEl) {
+                        noticeEl.classList.remove('hidden');
+                        noticeEl.textContent = 'ℹ️ Local student activity history has been reset.';
+                    }
+                };
+            }
+
+            const soundBtn = document.getElementById('btn-sound-toggle');
+            if (soundBtn) {
+                soundBtn.onclick = () => {
+                    soundEnabled = !soundEnabled;
+                    const icon = document.getElementById('icon-sound');
+                    if (icon) {
+                        icon.setAttribute('data-lucide', soundEnabled ? 'volume-2' : 'volume-x');
+                        lucide.createIcons();
+                    }
+                };
+            }
+
+            // Generate initial exercise
+            generateExercise();
+        });
+    </script>
+</body>
+</html>

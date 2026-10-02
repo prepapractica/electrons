@@ -1,0 +1,1264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PrepaPractica - Configuraciones Electrónicas & Diagramas de Órbita</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- jsPDF & autoTable for downloadable records -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            orange: '#FF6B00',
+                            orangeHover: '#E05D00',
+                            orangeLight: '#FFF0E6',
+                            blue: '#1E3A8A',
+                            blueLight: '#3B82F6',
+                            darkBg: '#0F172A',
+                            darkCard: '#1E293B',
+                            darkBorder: '#334155'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Light theme exact specification: White bg, orange borders/details, blue/black characters */
+        body.light-theme {
+            background-color: #FFFFFF;
+            color: #1E293B;
+        }
+        body.light-theme .accent-border {
+            border-color: #FF6B00 !important;
+        }
+        body.light-theme .card-bg {
+            background-color: #FAFAFA;
+            border: 2px solid #FF6B00;
+        }
+        body.light-theme .text-primary-custom {
+            color: #1E3A8A; /* Blue character/text */
+        }
+        body.light-theme .text-dark-custom {
+            color: #0F172A; /* Black character/text */
+        }
+
+        /* Dark theme specification */
+        body.dark-theme {
+            background-color: #0F172A;
+            color: #F8FAFC;
+        }
+        body.dark-theme .card-bg {
+            background-color: #1E293B;
+            border: 2px solid #FF6B00;
+        }
+        body.dark-theme .text-primary-custom {
+            color: #60A5FA;
+        }
+        body.dark-theme .text-dark-custom {
+            color: #F1F5F9;
+        }
+
+        /* Orbital diagram boxes */
+        .orbital-box {
+            width: 38px;
+            height: 48px;
+            border: 2px solid #FF6B00;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.1rem;
+            background: rgba(255, 107, 0, 0.05);
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        /* Spin arrows styling */
+        .spin-up {
+            color: #2563EB;
+        }
+        .spin-down {
+            color: #DC2626;
+        }
+
+        /* Custom scrollbars */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.05);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #FF6B00;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="light-theme min-h-screen flex flex-col font-sans transition-colors duration-300">
+
+    <header class="border-b-2 border-brand-orange bg-white dark:bg-brand-darkCard px-4 py-3 shadow-md sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-4">
+            <!-- Brand & Developer Info -->
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-brand-orange text-white flex items-center justify-center font-extrabold text-xl shadow-md">
+                    <i class="fa-solid fa-atom animate-spin-slow"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-extrabold tracking-tight text-brand-blue dark:text-blue-400 leading-none">
+                        PrepaPractica
+                    </h1>
+                    <span class="text-xs font-semibold text-brand-orange tracking-wider uppercase" id="appSubtitle">
+                        Interactive Chemistry
+                    </span>
+                </div>
+            </div>
+
+            <!-- Student Name Input & Session Bar -->
+            <div class="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 p-1.5 rounded-xl border border-brand-orange">
+                <i class="fa-solid fa-user-graduate text-brand-orange pl-2"></i>
+                <input type="text" id="studentNameInput" placeholder="Student Name / Nombre del Estudiante" 
+                       class="bg-transparent text-sm font-semibold text-slate-800 dark:text-white px-2 py-1 outline-none w-48 sm:w-64 focus:ring-0">
+                <button id="saveNameBtn" title="Save Name" class="bg-brand-orange hover:bg-brand-orangeHover text-white px-3 py-1 rounded-lg text-xs font-bold transition">
+                    <i class="fa-solid fa-check"></i>
+                </button>
+            </div>
+
+            <!-- Utility Controls: Language, Theme, Reference Table, Log PDF -->
+            <div class="flex items-center gap-2">
+                <!-- Lang Toggle -->
+                <button id="langToggleBtn" class="px-2.5 py-1.5 rounded-lg border border-brand-orange text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-orange-50 dark:hover:bg-slate-700 transition flex items-center gap-1">
+                    <i class="fa-solid fa-globe text-brand-orange"></i>
+                    <span id="currentLangLabel">EN</span>
+                </button>
+
+                <!-- Theme Toggle -->
+                <button id="themeToggleBtn" class="p-2 rounded-lg border border-brand-orange text-brand-orange hover:bg-orange-50 dark:hover:bg-slate-700 transition" title="Toggle Theme">
+                    <i class="fa-solid fa-moon text-lg dark:hidden"></i>
+                    <i class="fa-solid fa-sun text-lg hidden dark:inline"></i>
+                </button>
+
+                <!-- Periodic Table Ref Button -->
+                <button id="openPtBtn" class="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow transition flex items-center gap-1">
+                    <i class="fa-solid fa-table-cells"></i>
+                    <span class="hidden sm:inline" id="ptBtnText">Periodic Table</span>
+                </button>
+
+                <!-- View Record Modal Button -->
+                <button id="openRecordBtn" class="px-3 py-1.5 rounded-lg bg-brand-orange hover:bg-brand-orangeHover text-white text-xs font-bold shadow transition flex items-center gap-1">
+                    <i class="fa-solid fa-clipboard-list"></i>
+                    <span id="recordBtnText">View Record</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl w-full mx-auto p-4 sm:p-6 flex flex-col gap-6">
+
+        <!-- Welcome Banner & Instructions -->
+        <section class="card-bg rounded-2xl p-5 shadow-lg border-2 border-brand-orange flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="space-y-1 text-left">
+                <h2 class="text-2xl font-extrabold text-brand-blue dark:text-blue-400" id="welcomeTitle">
+                    Practice Electron Configuration!
+                </h2>
+                <p class="text-sm text-slate-600 dark:text-slate-300 max-w-2xl" id="welcomeDesc">
+                    Select an exercise mode below. Identify the corresponding element from its atomic structure. Use pedagogical hints to challenge your mind without looking for quick answers!
+                </p>
+            </div>
+            <!-- Session Stats Quick Badge -->
+            <div class="flex items-center gap-4 bg-white dark:bg-slate-800 p-3 rounded-xl border border-orange-300 shadow-inner">
+                <div class="text-center">
+                    <span class="block text-xs font-bold text-slate-500 uppercase" id="statSolvedLabel">Solved</span>
+                    <span class="text-xl font-extrabold text-brand-orange" id="statSolvedVal">0</span>
+                </div>
+                <div class="h-8 w-px bg-slate-200 dark:bg-slate-700"></div>
+                <div class="text-center">
+                    <span class="block text-xs font-bold text-slate-500 uppercase" id="statAccuracyLabel">Accuracy</span>
+                    <span class="text-xl font-extrabold text-blue-600 dark:text-blue-400" id="statAccuracyVal">0%</span>
+                </div>
+                <div class="h-8 w-px bg-slate-200 dark:bg-slate-700"></div>
+                <div class="text-center">
+                    <span class="block text-xs font-bold text-slate-500 uppercase" id="statTimeLabel">Time</span>
+                    <span class="text-xl font-extrabold text-slate-700 dark:text-slate-200 font-mono" id="sessionTimer">00:00</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- Option 1: Standard Configuration (Elements 1-38) -->
+            <button id="modeConfigBtn" class="mode-card group relative p-5 rounded-2xl border-2 border-brand-orange bg-white dark:bg-slate-800 text-left shadow-md hover:shadow-xl transition-all duration-200 hover:-translate-y-1">
+                <div class="flex justify-between items-start mb-3">
+                    <span class="p-3 rounded-xl bg-orange-100 text-brand-orange group-hover:bg-brand-orange group-hover:text-white transition">
+                        <i class="fa-solid fa-list-ol text-xl"></i>
+                    </span>
+                    <span class="text-xs font-bold px-2.5 py-1 rounded-full bg-orange-100 dark:bg-slate-700 text-brand-orange">
+                        Z: 1 - 38
+                    </span>
+                </div>
+                <h3 class="text-lg font-bold text-brand-blue dark:text-blue-400 mb-1" id="mode1Title">
+                    1. Standard Configuration
+                </h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400" id="mode1Desc">
+                    Identify element from full subshell breakdown (1s, 2s, 2p...).
+                </p>
+                <div class="active-indicator hidden absolute bottom-2 right-3 text-brand-orange text-lg">
+                    <i class="fa-solid fa-circle-check"></i>
+                </div>
+            </button>
+
+            <!-- Option 2: Noble Gas Notation (Elements 1-100) -->
+            <button id="modeNobleBtn" class="mode-card group relative p-5 rounded-2xl border-2 border-brand-orange bg-white dark:bg-slate-800 text-left shadow-md hover:shadow-xl transition-all duration-200 hover:-translate-y-1">
+                <div class="flex justify-between items-start mb-3">
+                    <span class="p-3 rounded-xl bg-blue-100 text-brand-blue group-hover:bg-brand-blue group-hover:text-white transition">
+                        <i class="fa-solid fa-mask text-xl"></i>
+                    </span>
+                    <span class="text-xs font-bold px-2.5 py-1 rounded-full bg-blue-100 dark:bg-slate-700 text-brand-blue dark:text-blue-300">
+                        Z: 1 - 100
+                    </span>
+                </div>
+                <h3 class="text-lg font-bold text-brand-blue dark:text-blue-400 mb-1" id="mode2Title">
+                    2. Noble Gas Notation
+                </h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400" id="mode2Desc">
+                    Abbreviated configuration using nearest noble gas core ([He], [Ne], [Ar], etc.).
+                </p>
+                <div class="active-indicator hidden absolute bottom-2 right-3 text-brand-orange text-lg">
+                    <i class="fa-solid fa-circle-check"></i>
+                </div>
+            </button>
+
+            <!-- Option 3: Orbital Diagram (Elements 1-38) -->
+            <button id="modeOrbitalBtn" class="mode-card group relative p-5 rounded-2xl border-2 border-brand-orange bg-white dark:bg-slate-800 text-left shadow-md hover:shadow-xl transition-all duration-200 hover:-translate-y-1">
+                <div class="flex justify-between items-start mb-3">
+                    <span class="p-3 rounded-xl bg-emerald-100 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition">
+                        <i class="fa-solid fa-arrows-up-down text-xl"></i>
+                    </span>
+                    <span class="text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-slate-700 text-emerald-600 dark:text-emerald-300">
+                        Z: 1 - 38
+                    </span>
+                </div>
+                <h3 class="text-lg font-bold text-brand-blue dark:text-blue-400 mb-1" id="mode3Title">
+                    3. Orbital Diagram
+                </h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400" id="mode3Desc">
+                    Orbital boxes with magnetic spins (↑↓) following Hund's rule.
+                </p>
+                <div class="active-indicator hidden absolute bottom-2 right-3 text-brand-orange text-lg">
+                    <i class="fa-solid fa-circle-check"></i>
+                </div>
+            </button>
+        </section>
+
+        <section class="card-bg rounded-2xl p-6 shadow-xl relative border-2 border-brand-orange flex flex-col gap-6">
+            
+            <!-- Question Prompt Header -->
+            <div class="flex flex-wrap justify-between items-center border-b border-orange-200 dark:border-slate-700 pb-4 gap-2">
+                <div class="flex items-center gap-2">
+                    <span id="activeModeBadge" class="bg-brand-orange text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                        Standard Configuration (Z: 1-38)
+                    </span>
+                    <span class="text-xs font-semibold text-slate-500 dark:text-slate-400" id="exerciseInstructions">
+                        Identify the element's name or symbol:
+                    </span>
+                </div>
+                <button id="nextExerciseBtn" class="text-xs font-bold text-brand-blue dark:text-blue-400 hover:text-brand-orange transition flex items-center gap-1">
+                    <i class="fa-solid fa-rotate-right"></i>
+                    <span id="nextBtnText">Generate another problem</span>
+                </button>
+            </div>
+
+            <!-- Problem Display Canvas -->
+            <div id="problemDisplay" class="bg-white dark:bg-slate-900 rounded-xl p-6 border-2 border-brand-orange min-h-[140px] flex items-center justify-center text-center shadow-inner overflow-x-auto">
+                <!-- Content injected dynamically via JavaScript -->
+            </div>
+
+            <!-- Input Answer & Check Actions -->
+            <div class="flex flex-col sm:flex-row gap-3 items-center justify-center max-w-xl mx-auto w-full">
+                <div class="relative w-full">
+                    <input type="text" id="studentAnswerInput" autocomplete="off" placeholder="Type element name or symbol..." 
+                           class="w-full px-4 py-3 rounded-xl border-2 border-brand-orange bg-white dark:bg-slate-800 text-slate-800 dark:text-white font-bold text-base focus:outline-none focus:ring-2 focus:ring-brand-orange shadow-sm">
+                    <div id="answerSuggestions" class="hidden absolute left-0 right-0 top-full mt-1 bg-white dark:bg-slate-800 border border-brand-orange rounded-xl shadow-xl z-20 max-h-48 overflow-y-auto">
+                        <!-- Auto-suggestions populated dynamically -->
+                    </div>
+                </div>
+
+                <button id="checkAnswerBtn" class="w-full sm:w-auto px-6 py-3 rounded-xl bg-brand-orange hover:bg-brand-orangeHover text-white font-extrabold text-base shadow-lg transition transform active:scale-95 flex items-center justify-center gap-2 whitespace-nowrap">
+                    <i class="fa-solid fa-paper-plane"></i>
+                    <span id="checkBtnText">Check Answer</span>
+                </button>
+            </div>
+
+            <!-- Hint & Feedback Message Container -->
+            <div id="feedbackContainer" class="hidden rounded-xl p-4 text-sm font-medium transition-all duration-300 border">
+                <!-- Feedback text and pedagogic hints go here -->
+            </div>
+
+            <!-- Pedagogical Hints Box (Teacher-Guided Learning) -->
+            <div class="bg-blue-50 dark:bg-slate-800/60 rounded-xl p-4 border border-blue-200 dark:border-slate-700 flex flex-col gap-2">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-brand-blue dark:text-blue-300 uppercase tracking-wide flex items-center gap-1.5">
+                        <i class="fa-solid fa-lightbulb text-yellow-500"></i>
+                        <span id="hintBoxTitle">PrepaPractica Pedagogical Assistant</span>
+                    </span>
+                    <button id="requestHintBtn" class="text-xs font-bold text-brand-orange hover:underline flex items-center gap-1">
+                        <i class="fa-solid fa-circle-question"></i>
+                        <span id="requestHintText">Get a hint</span>
+                    </button>
+                </div>
+                <div id="hintContent" class="text-xs text-slate-600 dark:text-slate-300 italic">
+                    Stuck? Instead of revealing the answer, the assistant provides clues about electron count, period, or group so you master the concept!
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <div id="recordModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl border-2 border-brand-orange overflow-hidden">
+            
+            <!-- Modal Header -->
+            <div class="p-5 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-900">
+                <div class="flex items-center gap-3">
+                    <div class="p-2.5 bg-brand-orange text-white rounded-xl">
+                        <i class="fa-solid fa-id-card text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-800 dark:text-white" id="recordModalTitle">
+                            Student Performance Record & Log
+                        </h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400" id="recordModalSub">
+                            Designed for teacher evaluation by PrepaPractica
+                        </p>
+                    </div>
+                </div>
+                <button id="closeRecordBtn" class="text-slate-400 hover:text-slate-600 dark:hover:text-white text-xl p-2">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Student Summary Info -->
+            <div class="p-5 grid grid-cols-1 sm:grid-cols-3 gap-4 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+                <div class="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600">
+                    <span class="text-xs font-bold text-slate-400 uppercase block" id="recStudentLabel">Student</span>
+                    <span class="text-base font-extrabold text-brand-blue dark:text-blue-300" id="recStudentName">Student</span>
+                </div>
+                <div class="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600">
+                    <span class="text-xs font-bold text-slate-400 uppercase block" id="recAttemptsLabel">Verified Exercises</span>
+                    <span class="text-base font-extrabold text-brand-orange" id="recTotalAttempts">0</span>
+                </div>
+                <div class="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600">
+                    <span class="text-xs font-bold text-slate-400 uppercase block" id="recScoreLabel">Correct / Accuracy</span>
+                    <span class="text-base font-extrabold text-emerald-600 dark:text-emerald-400" id="recScoreRatio">0 / 0 (0%)</span>
+                </div>
+            </div>
+
+            <!-- Table Logs -->
+            <div class="p-5 overflow-y-auto flex-grow">
+                <table class="w-full text-left border-collapse text-xs sm:text-sm">
+                    <thead>
+                        <tr class="border-b-2 border-brand-orange text-slate-500 dark:text-slate-400 font-bold uppercase">
+                            <th class="py-2 px-3">#</th>
+                            <th class="py-2 px-3" id="thType">Problem Type</th>
+                            <th class="py-2 px-3" id="thConfig">Config / Notation</th>
+                            <th class="py-2 px-3" id="thInput">Student Answer</th>
+                            <th class="py-2 px-3" id="thStatus">Result</th>
+                            <th class="py-2 px-3" id="thTime">Elapsed Time</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recordTableBody" class="divide-y divide-slate-100 dark:divide-slate-700 text-slate-700 dark:text-slate-200 font-medium">
+                        <!-- Table rows injected via JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Modal Footer with PDF Export -->
+            <div class="p-4 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 flex justify-between items-center">
+                <button id="clearRecordBtn" class="text-xs font-bold text-red-500 hover:text-red-700 transition">
+                    <i class="fa-solid fa-trash mr-1"></i> <span id="clearRecText">Reset Record</span>
+                </button>
+                <button id="downloadPdfBtn" class="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-extrabold text-xs sm:text-sm shadow-md transition flex items-center gap-2">
+                    <i class="fa-solid fa-file-pdf text-base"></i>
+                    <span id="downloadPdfText">Download PDF Report</span>
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="ptModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-2 sm:p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl max-w-6xl w-full max-h-[95vh] flex flex-col shadow-2xl border-2 border-brand-orange overflow-hidden">
+            <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-900">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-table-cells text-brand-orange text-xl"></i>
+                    <h3 class="text-base font-bold text-slate-800 dark:text-white" id="ptModalTitle">
+                        Reference Periodic Table (Elements 1 - 100)
+                    </h3>
+                </div>
+                <button id="closePtBtn" class="text-slate-400 hover:text-slate-600 dark:hover:text-white text-xl p-2">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="p-3 overflow-auto flex-grow">
+                <p class="text-xs text-slate-500 mb-2 italic text-center" id="ptHintNote">
+                    Look up atomic numbers and symbols to help solve your exercise.
+                </p>
+                <div id="ptGrid" class="grid grid-cols-10 gap-1.5 min-w-[700px]">
+                    <!-- Generated periodic table element badges -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="mt-auto border-t border-orange-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-3 text-center text-xs text-slate-500 dark:text-slate-400">
+        <p>© 2026 <span class="font-bold text-brand-orange">PrepaPractica</span> — General Chemistry Educational Tool</p>
+    </footer>
+
+    <script>
+        const ELEMENTS_DATA = [
+            { z: 1, symbol: "H", nameEs: "Hidrógeno", nameEn: "Hydrogen", period: 1, group: 1, block: "s", config: "1s¹", noble: "1s¹" },
+            { z: 2, symbol: "He", nameEs: "Helio", nameEn: "Helium", period: 1, group: 18, block: "s", config: "1s²", noble: "1s²" },
+            { z: 3, symbol: "Li", nameEs: "Litio", nameEn: "Lithium", period: 2, group: 1, block: "s", config: "1s² 2s¹", noble: "[He] 2s¹" },
+            { z: 4, symbol: "Be", nameEs: "Berilio", nameEn: "Beryllium", period: 2, group: 2, block: "s", config: "1s² 2s²", noble: "[He] 2s²" },
+            { z: 5, symbol: "B", nameEs: "Boro", nameEn: "Boron", period: 2, group: 13, block: "p", config: "1s² 2s² 2p¹", noble: "[He] 2s² 2p¹" },
+            { z: 6, symbol: "C", nameEs: "Carbono", nameEn: "Carbon", period: 2, group: 14, block: "p", config: "1s² 2s² 2p²", noble: "[He] 2s² 2p²" },
+            { z: 7, symbol: "N", nameEs: "Nitrógeno", nameEn: "Nitrogen", period: 2, group: 15, block: "p", config: "1s² 2s² 2p³", noble: "[He] 2s² 2p³" },
+            { z: 8, symbol: "O", nameEs: "Oxígeno", nameEn: "Oxygen", period: 2, group: 16, block: "p", config: "1s² 2s² 2p⁴", noble: "[He] 2s² 2p⁴" },
+            { z: 9, symbol: "F", nameEs: "Flúor", nameEn: "Fluorine", period: 2, group: 17, block: "p", config: "1s² 2s² 2p⁵", noble: "[He] 2s² 2p⁵" },
+            { z: 10, symbol: "Ne", nameEs: "Neón", nameEn: "Neon", period: 2, group: 18, block: "p", config: "1s² 2s² 2p⁶", noble: "[Ne]" },
+            { z: 11, symbol: "Na", nameEs: "Sodio", nameEn: "Sodium", period: 3, group: 1, block: "s", config: "1s² 2s² 2p⁶ 3s¹", noble: "[Ne] 3s¹" },
+            { z: 12, symbol: "Mg", nameEs: "Magnesio", nameEn: "Magnesium", period: 3, group: 2, block: "s", config: "1s² 2s² 2p⁶ 3s²", noble: "[Ne] 3s²" },
+            { z: 13, symbol: "Al", nameEs: "Aluminio", nameEn: "Aluminium", period: 3, group: 13, block: "p", config: "1s² 2s² 2p⁶ 3s² 3p¹", noble: "[Ne] 3s² 3p¹" },
+            { z: 14, symbol: "Si", nameEs: "Silicio", nameEn: "Silicon", period: 3, group: 14, block: "p", config: "1s² 2s² 2p⁶ 3s² 3p²", noble: "[Ne] 3s² 3p²" },
+            { z: 15, symbol: "P", nameEs: "Fósforo", nameEn: "Phosphorus", period: 3, group: 15, block: "p", config: "1s² 2s² 2p⁶ 3s² 3p³", noble: "[Ne] 3s² 3p³" },
+            { z: 16, symbol: "S", nameEs: "Azufre", nameEn: "Sulfur", period: 3, group: 16, block: "p", config: "1s² 2s² 2p⁶ 3s² 3p⁴", noble: "[Ne] 3s² 3p⁴" },
+            { z: 17, symbol: "Cl", nameEs: "Cloro", nameEn: "Chlorine", period: 3, group: 17, block: "p", config: "1s² 2s² 2p⁶ 3s² 3p⁵", noble: "[Ne] 3s² 3p⁵" },
+            { z: 18, symbol: "Ar", nameEs: "Argón", nameEn: "Argon", period: 3, group: 18, block: "p", config: "1s² 2s² 2p⁶ 3s² 3p⁶", noble: "[Ar]" },
+            { z: 19, symbol: "K", nameEs: "Potasio", nameEn: "Potassium", period: 4, group: 1, block: "s", config: "1s² 2s² 2p⁶ 3s² 3p⁶ 4s¹", noble: "[Ar] 4s¹" },
+            { z: 20, symbol: "Ca", nameEs: "Calcio", nameEn: "Calcium", period: 4, group: 2, block: "s", config: "1s² 2s² 2p⁶ 3s² 3p⁶ 4s²", noble: "[Ar] 4s²" },
+            { z: 21, symbol: "Sc", nameEs: "Escandio", nameEn: "Scandium", period: 4, group: 3, block: "d", config: "1s² 2s² 2p⁶ 3s² 3p⁶ 4s² 3d¹", noble: "[Ar] 4s² 3d¹" },
+            { z: 22, symbol: "Ti", nameEs: "Titanio", nameEn: "Titanium", period: 4, group: 4, block: "d", config: "1s² 2s² 2p⁶ 3s² 3p⁶ 4s² 3d²", noble: "[Ar] 4s² 3d²" },
+            { z: 23, symbol: "V", nameEs: "Vanadio", nameEn: "Vanadium", period: 4, group: 5, block: "d", config: "1s² 2s² 2p⁶ 3s² 3p⁶ 4s² 3d³", noble: "[Ar] 4s² 3d³" },
+            { z: 24, symbol: "Cr", nameEs: "Cromo", nameEn: "Chromium", period: 4, group: 6, block: "d", config: "1s² 2s² 2p⁶ 3s² 3p⁶ 4s¹ 3d⁵", noble: "[Ar] 4s¹ 3d⁵" },
+            { z: 25, symbol: "Mn", nameEs: "Manganeso", nameEn: "Manganese", period: 4, group: 7, block: "d", config: "1s² 2s² 2p⁶ 3s² 3p⁶ 4s² 3d⁵", noble: "[Ar] 4s² 3d⁵" },
+            { z: 26, symbol: "Fe", nameEs: "Hierro", nameEn: "Iron", period: 4, group: 8, block: "d", config: "1s² 2s² 2p⁶ 3s² 3p⁶ 4s² 3d⁶", noble: "[Ar] 4s² 3d⁶" },
+            { z: 27, symbol: "Co", nameEs: "Cobalto", nameEn: "Cobalt", period: 4, group: 9, block: "d", config: "1s² 2s² 2p⁶ 3s² 3p⁶ 4s² 3d⁷", noble: "[Ar] 4s² 3d⁷" },
+            { z: 28, symbol: "Ni", nameEs: "Níquel", nameEn: "Nickel", period: 4, group: 10, block: "d", config: "1s² 2s² 2p⁶ 3s² 3p⁶ 4s² 3d⁸", noble: "[Ar] 4s² 3d⁸" },
+            { z: 29, symbol: "Cu", nameEs: "Cobre", nameEn: "Copper", period: 4, group: 11, block: "d", config: "1s² 2s² 2p⁶ 3s² 3p⁶ 4s¹ 3d¹⁰", noble: "[Ar] 4s¹ 3d¹⁰" },
+            { z: 30, symbol: "Zn", nameEs: "Zinc", nameEn: "Zinc", period: 4, group: 12, block: "d", config: "1s² 2s² 2p⁶ 3s² 3p⁶ 4s² 3d¹⁰", noble: "[Ar] 4s² 3d¹⁰" },
+            { z: 31, symbol: "Ga", nameEs: "Galio", nameEn: "Gallium", period: 4, group: 13, block: "p", config: "1s² 2s² 2p⁶ 3s² 3p⁶ 4s² 3d¹⁰ 4p¹", noble: "[Ar] 4s² 3d¹⁰ 4p¹" },
+            { z: 32, symbol: "Ge", nameEs: "Germanio", nameEn: "Germanium", period: 4, group: 14, block: "p", config: "1s² 2s² 2p⁶ 3s² 3p⁶ 4s² 3d¹⁰ 4p²", noble: "[Ar] 4s² 3d¹⁰ 4p²" },
+            { z: 33, symbol: "As", nameEs: "Arsénico", nameEn: "Arsenic", period: 4, group: 15, block: "p", config: "1s² 2s² 2p⁶ 3s² 3p⁶ 4s² 3d¹⁰ 4p³", noble: "[Ar] 4s² 3d¹⁰ 4p³" },
+            { z: 34, symbol: "Se", nameEs: "Selenio", nameEn: "Selenium", period: 4, group: 16, block: "p", config: "1s² 2s² 2p⁶ 3s² 3p⁶ 4s² 3d¹⁰ 4p⁴", noble: "[Ar] 4s² 3d¹⁰ 4p⁴" },
+            { z: 35, symbol: "Br", nameEs: "Bromo", nameEn: "Bromine", period: 4, group: 17, block: "p", config: "1s² 2s² 2p⁶ 3s² 3p⁶ 4s² 3d¹⁰ 4p⁵", noble: "[Ar] 4s² 3d¹⁰ 4p⁵" },
+            { z: 36, symbol: "Kr", nameEs: "Kriptón", nameEn: "Krypton", period: 4, group: 18, block: "p", config: "1s² 2s² 2p⁶ 3s² 3p⁶ 4s² 3d¹⁰ 4p⁶", noble: "[Kr]" },
+            { z: 37, symbol: "Rb", nameEs: "Rubidio", nameEn: "Rubidium", period: 5, group: 1, block: "s", config: "1s² 2s² 2p⁶ 3s² 3p⁶ 4s² 3d¹⁰ 4p⁶ 5s¹", noble: "[Kr] 5s¹" },
+            { z: 38, symbol: "Sr", nameEs: "Estroncio", nameEn: "Strontium", period: 5, group: 2, block: "s", config: "1s² 2s² 2p⁶ 3s² 3p⁶ 4s² 3d¹⁰ 4p⁶ 5s²", noble: "[Kr] 5s²" },
+            
+            // Elements 39 to 100 for Noble Gas Notation Practice
+            { z: 39, symbol: "Y", nameEs: "Itrio", nameEn: "Yttrium", period: 5, group: 3, block: "d", noble: "[Kr] 5s² 4d¹" },
+            { z: 40, symbol: "Zr", nameEs: "Circonio", nameEn: "Zirconium", period: 5, group: 4, block: "d", noble: "[Kr] 5s² 4d²" },
+            { z: 41, symbol: "Nb", nameEs: "Niobio", nameEn: "Niobium", period: 5, group: 5, block: "d", noble: "[Kr] 5s¹ 4d⁴" },
+            { z: 42, symbol: "Mo", nameEs: "Molibdeno", nameEn: "Molybdenum", period: 5, group: 6, block: "d", noble: "[Kr] 5s¹ 4d⁵" },
+            { z: 43, symbol: "Tc", nameEs: "Tecnecio", nameEn: "Technetium", period: 5, group: 7, block: "d", noble: "[Kr] 5s² 4d⁵" },
+            { z: 44, symbol: "Ru", nameEs: "Rutenio", nameEn: "Ruthenium", period: 5, group: 8, block: "d", noble: "[Kr] 5s¹ 4d⁷" },
+            { z: 45, symbol: "Rh", nameEs: "Rodio", nameEn: "Rhodium", period: 5, group: 9, block: "d", noble: "[Kr] 5s¹ 4d⁸" },
+            { z: 46, symbol: "Pd", nameEs: "Paladio", nameEn: "Palladium", period: 5, group: 10, block: "d", noble: "[Kr] 4d¹⁰" },
+            { z: 47, symbol: "Ag", nameEs: "Plata", nameEn: "Silver", period: 5, group: 11, block: "d", noble: "[Kr] 5s¹ 4d¹⁰" },
+            { z: 48, symbol: "Cd", nameEs: "Cadmio", nameEn: "Cadmium", period: 5, group: 12, block: "d", noble: "[Kr] 5s² 4d¹⁰" },
+            { z: 49, symbol: "In", nameEs: "Indio", nameEn: "Indium", period: 5, group: 13, block: "p", noble: "[Kr] 5s² 4d¹⁰ 5p¹" },
+            { z: 50, symbol: "Sn", nameEs: "Estaño", nameEn: "Tin", period: 5, group: 14, block: "p", noble: "[Kr] 5s² 4d¹⁰ 5p²" },
+            { z: 51, symbol: "Sb", nameEs: "Antimonio", nameEn: "Antimony", period: 5, group: 15, block: "p", noble: "[Kr] 5s² 4d¹⁰ 5p³" },
+            { z: 52, symbol: "Te", nameEs: "Telurio", nameEn: "Tellurium", period: 5, group: 16, block: "p", noble: "[Kr] 5s² 4d¹⁰ 5p⁴" },
+            { z: 53, symbol: "I", nameEs: "Yodo", nameEn: "Iodine", period: 5, group: 17, block: "p", noble: "[Kr] 5s² 4d¹⁰ 5p⁵" },
+            { z: 54, symbol: "Xe", nameEs: "Xenón", nameEn: "Xenon", period: 5, group: 18, block: "p", noble: "[Xe]" },
+            { z: 55, symbol: "Cs", nameEs: "Cesio", nameEn: "Caesium", period: 6, group: 1, block: "s", noble: "[Xe] 6s¹" },
+            { z: 56, symbol: "Ba", nameEs: "Bario", nameEn: "Barium", period: 6, group: 2, block: "s", noble: "[Xe] 6s²" },
+            { z: 57, symbol: "La", nameEs: "Lántano", nameEn: "Lanthanum", period: 6, group: 3, block: "d", noble: "[Xe] 6s² 5d¹" },
+            { z: 58, symbol: "Ce", nameEs: "Cerio", nameEn: "Cerium", period: 6, group: 3, block: "f", noble: "[Xe] 6s² 4f¹ 5d¹" },
+            { z: 59, symbol: "Pr", nameEs: "Praseodimio", nameEn: "Praseodymium", period: 6, group: 3, block: "f", noble: "[Xe] 6s² 4f³" },
+            { z: 60, symbol: "Nd", nameEs: "Neodimio", nameEn: "Neodymium", period: 6, group: 3, block: "f", noble: "[Xe] 6s² 4f⁴" },
+            { z: 61, symbol: "Pm", nameEs: "Prometio", nameEn: "Promethium", period: 6, group: 3, block: "f", noble: "[Xe] 6s² 4f⁵" },
+            { z: 62, symbol: "Sm", nameEs: "Samario", nameEn: "Samarium", period: 6, group: 3, block: "f", noble: "[Xe] 6s² 4f⁶" },
+            { z: 63, symbol: "Eu", nameEs: "Europio", nameEn: "Europium", period: 6, group: 3, block: "f", noble: "[Xe] 6s² 4f⁷" },
+            { z: 64, symbol: "Gd", nameEs: "Gadolinio", nameEn: "Gadolinium", period: 6, group: 3, block: "f", noble: "[Xe] 6s² 4f⁷ 5d¹" },
+            { z: 65, symbol: "Tb", nameEs: "Terbio", nameEn: "Terbium", period: 6, group: 3, block: "f", noble: "[Xe] 6s² 4f⁹" },
+            { z: 66, symbol: "Dy", nameEs: "Disprosio", nameEn: "Dysprosium", period: 6, group: 3, block: "f", noble: "[Xe] 6s² 4f¹⁰" },
+            { z: 67, symbol: "Ho", nameEs: "Holmio", nameEn: "Holmium", period: 6, group: 3, block: "f", noble: "[Xe] 6s² 4f¹¹" },
+            { z: 68, symbol: "Er", nameEs: "Erbio", nameEn: "Erbium", period: 6, group: 3, block: "f", noble: "[Xe] 6s² 4f¹²" },
+            { z: 69, symbol: "Tm", nameEs: "Tulio", nameEn: "Thulium", period: 6, group: 3, block: "f", noble: "[Xe] 6s² 4f¹³" },
+            { z: 70, symbol: "Yb", nameEs: "Iterbio", nameEn: "Ytterbium", period: 6, group: 3, block: "f", noble: "[Xe] 6s² 4f¹⁴" },
+            { z: 71, symbol: "Lu", nameEs: "Lutecio", nameEn: "Lutetium", period: 6, group: 3, block: "d", noble: "[Xe] 6s² 4f¹⁴ 5d¹" },
+            { z: 72, symbol: "Hf", nameEs: "Hafnio", nameEn: "Hafnium", period: 6, group: 4, block: "d", noble: "[Xe] 6s² 4f¹⁴ 5d²" },
+            { z: 73, symbol: "Ta", nameEs: "Tántalo", nameEn: "Tantalum", period: 6, group: 5, block: "d", noble: "[Xe] 6s² 4f¹⁴ 5d³" },
+            { z: 74, symbol: "W", nameEs: "Tungsteno", nameEn: "Tungsten", period: 6, group: 6, block: "d", noble: "[Xe] 6s² 4f¹⁴ 5d⁴" },
+            { z: 75, symbol: "Re", nameEs: "Renio", nameEn: "Rhenium", period: 6, group: 7, block: "d", noble: "[Xe] 6s² 4f¹⁴ 5d⁵" },
+            { z: 76, symbol: "Os", nameEs: "Osmio", nameEn: "Osmium", period: 6, group: 8, block: "d", noble: "[Xe] 6s² 4f¹⁴ 5d⁶" },
+            { z: 77, symbol: "Ir", nameEs: "Iridio", nameEn: "Iridium", period: 6, group: 9, block: "d", noble: "[Xe] 6s² 4f¹⁴ 5d⁷" },
+            { z: 78, symbol: "Pt", nameEs: "Platino", nameEn: "Platinum", period: 6, group: 10, block: "d", noble: "[Xe] 6s¹ 4f¹⁴ 5d⁹" },
+            { z: 79, symbol: "Au", nameEs: "Oro", nameEn: "Gold", period: 6, group: 11, block: "d", noble: "[Xe] 6s¹ 4f¹⁴ 5d¹⁰" },
+            { z: 80, symbol: "Hg", nameEs: "Mercurio", nameEn: "Mercury", period: 6, group: 12, block: "d", noble: "[Xe] 6s² 4f¹⁴ 5d¹⁰" },
+            { z: 81, symbol: "Tl", nameEs: "Talio", nameEn: "Thallium", period: 6, group: 13, block: "p", noble: "[Xe] 6s² 4f¹⁴ 5d¹⁰ 6p¹" },
+            { z: 82, symbol: "Pb", nameEs: "Plomo", nameEn: "Lead", period: 6, group: 14, block: "p", noble: "[Xe] 6s² 4f¹⁴ 5d¹⁰ 6p²" },
+            { z: 83, symbol: "Bi", nameEs: "Bismuto", nameEn: "Bismuth", period: 6, group: 15, block: "p", noble: "[Xe] 6s² 4f¹⁴ 5d¹⁰ 6p³" },
+            { z: 84, symbol: "Po", nameEs: "Polonio", nameEn: "Polonium", period: 6, group: 16, block: "p", noble: "[Xe] 6s² 4f¹⁴ 5d¹⁰ 6p⁴" },
+            { z: 85, symbol: "At", nameEs: "Astato", nameEn: "Astatine", period: 6, group: 17, block: "p", noble: "[Xe] 6s² 4f¹⁴ 5d¹⁰ 6p⁵" },
+            { z: 86, symbol: "Rn", nameEs: "Radón", nameEn: "Radon", period: 6, group: 18, block: "p", noble: "[Rn]" },
+            { z: 87, symbol: "Fr", nameEs: "Francio", nameEn: "Francium", period: 7, group: 1, block: "s", noble: "[Rn] 7s¹" },
+            { z: 88, symbol: "Ra", nameEs: "Radio", nameEn: "Radium", period: 7, group: 2, block: "s", noble: "[Rn] 7s²" },
+            { z: 89, symbol: "Ac", nameEs: "Actinio", nameEn: "Actinium", period: 7, group: 3, block: "d", noble: "[Rn] 7s² 6d¹" },
+            { z: 90, symbol: "Th", nameEs: "Torio", nameEn: "Thorium", period: 7, group: 3, block: "f", noble: "[Rn] 7s² 6d²" },
+            { z: 91, symbol: "Pa", nameEs: "Protactinio", nameEn: "Protactinium", period: 7, group: 3, block: "f", noble: "[Rn] 7s² 5f² 6d¹" },
+            { z: 92, symbol: "U", nameEs: "Uranio", nameEn: "Uranium", period: 7, group: 3, block: "f", noble: "[Rn] 7s² 5f³ 6d¹" },
+            { z: 93, symbol: "Np", nameEs: "Neptunio", nameEn: "Neptunium", period: 7, group: 3, block: "f", noble: "[Rn] 7s² 5f⁴ 6d¹" },
+            { z: 94, symbol: "Pu", nameEs: "Plutonio", nameEn: "Plutonium", period: 7, group: 3, block: "f", noble: "[Rn] 7s² 5f⁶" },
+            { z: 95, symbol: "Am", nameEs: "Americio", nameEn: "Americium", period: 7, group: 3, block: "f", noble: "[Rn] 7s² 5f⁷" },
+            { z: 96, symbol: "Cm", nameEs: "Curio", nameEn: "Curium", period: 7, group: 3, block: "f", noble: "[Rn] 7s² 5f⁷ 6d¹" },
+            { z: 97, symbol: "Bk", nameEs: "Berkelio", nameEn: "Berkelium", period: 7, group: 3, block: "f", noble: "[Rn] 7s² 5f⁹" },
+            { z: 98, symbol: "Cf", nameEs: "Californio", nameEn: "Californium", period: 7, group: 3, block: "f", noble: "[Rn] 7s² 5f¹⁰" },
+            { z: 99, symbol: "Es", nameEs: "Einstenio", nameEn: "Einsteinium", period: 7, group: 3, block: "f", noble: "[Rn] 7s² 5f¹¹" },
+            { z: 100, symbol: "Fm", nameEs: "Fermio", nameEn: "Fermium", period: 7, group: 3, block: "f", noble: "[Rn] 7s² 5f¹²" }
+        ];
+
+        let state = {
+            studentName: "Student",
+            lang: "en", // Default language set to 'en' (English)
+            theme: "light", // 'light' or 'dark'
+            activeMode: 1, // 1: Config (1-38), 2: Noble (1-100), 3: Orbital (1-38)
+            currentElement: null,
+            hintsGiven: 0,
+            startTime: Date.now(),
+            sessionTimerSeconds: 0,
+            timerInterval: null,
+            logs: []
+        };
+
+        const I18N = {
+            es: {
+                subtitle: "Química Interactiva",
+                welcomeTitle: "¡Practica la Configuración Electrónica!",
+                welcomeDesc: "Selecciona una modalidad de ejercicio abajo. Identifica el elemento correspondiente a partir de su estructura atómica. ¡Usa las pistas pedagógicas para desafiar tu mente sin pedir la respuesta directa!",
+                solved: "Resueltos",
+                accuracy: "Precisión",
+                time: "Tiempo",
+                m1Title: "1. Configuración Estándar",
+                m1Desc: "Escribir el elemento basándose en su desglose completo de subniveles (1s, 2s, 2p...).",
+                m2Title: "2. Notación Gas Noble",
+                m2Desc: "Configuración abreviada usando el core del gas noble correspondiente ([He], [Ne], [Ar], etc.).",
+                m3Title: "3. Diagrama de Órbitas",
+                m3Desc: "Cajas orbitales con espines (↑↓) distribuidos según la regla de Hund.",
+                inst: "Identifica el nombre o símbolo del elemento químico:",
+                nextBtn: "Generar otro ejercicio",
+                placeholder: "Escribe el nombre o símbolo del elemento...",
+                checkBtn: "Comprobar Respuesta",
+                hintTitle: "Asistente Pedagógico PrepaPractica",
+                hintBtn: "Pedir una pista",
+                hintDefault: "¿Tienes dudas? En lugar de darte la respuesta directamente, el asistente te dará pistas sobre el número de electrones, periodo o grupo para que tú mismo lo descubras.",
+                recTitle: "Historial y Registro del Estudiante",
+                recSub: "Desarrollado para evaluación docente por PrepaPractica",
+                recStudent: "Estudiante",
+                recAttempts: "Ejercicios Verificados",
+                recScore: "Aciertos / Eficiencia",
+                thType: "Tipo de Problema",
+                thConfig: "Config / Notación",
+                thInput: "Respuesta",
+                thStatus: "Resultado",
+                thTime: "Tiempo Transcurrido",
+                clearRec: "Reiniciar Registro",
+                dlPdf: "Descargar Reporte PDF",
+                ptTitle: "Tabla Periódica de Referencia (Elementos 1 - 100)",
+                ptHint: "Consulta los números atómicos y símbolos para resolver tu ejercicio.",
+                ptBtnText: "Tabla Periódica",
+                recBtnText: "Ver Registro"
+            },
+            en: {
+                subtitle: "Interactive Chemistry",
+                welcomeTitle: "Practice Electron Configuration!",
+                welcomeDesc: "Select an exercise mode below. Identify the corresponding element from its atomic structure. Use pedagogical hints to challenge your mind without looking for quick answers!",
+                solved: "Solved",
+                accuracy: "Accuracy",
+                time: "Time",
+                m1Title: "1. Standard Configuration",
+                m1Desc: "Identify element from full subshell breakdown (1s, 2s, 2p...).",
+                m2Title: "2. Noble Gas Notation",
+                m2Desc: "Abbreviated configuration using nearest noble gas core ([He], [Ne], [Ar], etc.).",
+                m3Title: "3. Orbital Diagram",
+                m3Desc: "Orbital boxes with magnetic spins (↑↓) following Hund's rule.",
+                inst: "Identify the element's name or symbol:",
+                nextBtn: "Generate another problem",
+                placeholder: "Type element name or symbol...",
+                checkBtn: "Check Answer",
+                hintTitle: "PrepaPractica Pedagogical Assistant",
+                hintBtn: "Get a hint",
+                hintDefault: "Stuck? Instead of revealing the answer, the assistant provides clues about electron count, period, or group so you master the concept!",
+                recTitle: "Student Performance Record & Log",
+                recSub: "Designed for teacher evaluation by PrepaPractica",
+                recStudent: "Student",
+                recAttempts: "Verified Exercises",
+                recScore: "Correct / Accuracy",
+                thType: "Problem Type",
+                thConfig: "Config / Notation",
+                thInput: "Student Answer",
+                thStatus: "Result",
+                thTime: "Elapsed Time",
+                clearRec: "Reset Record",
+                dlPdf: "Download PDF Report",
+                ptTitle: "Reference Periodic Table (Elements 1 - 100)",
+                ptHint: "Look up atomic numbers and symbols to help solve your exercise.",
+                ptBtnText: "Periodic Table",
+                recBtnText: "View Record"
+            }
+        };
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initTimer();
+            setupEventListeners();
+            selectMode(1);
+            renderPeriodicTable();
+            updateUIStrings();
+        });
+
+        function initTimer() {
+            state.startTime = Date.now();
+            if (state.timerInterval) clearInterval(state.timerInterval);
+            state.timerInterval = setInterval(() => {
+                state.sessionTimerSeconds = Math.floor((Date.now() - state.startTime) / 1000);
+                const mins = String(Math.floor(state.sessionTimerSeconds / 60)).padStart(2, '0');
+                const secs = String(state.sessionTimerSeconds % 60).padStart(2, '0');
+                document.getElementById('sessionTimer').textContent = `${mins}:${secs}`;
+            }, 1000);
+        }
+
+        function setupEventListeners() {
+            // Theme toggle
+            document.getElementById('themeToggleBtn').addEventListener('click', toggleTheme);
+
+            // Language toggle
+            document.getElementById('langToggleBtn').addEventListener('click', toggleLanguage);
+
+            // Student name save
+            document.getElementById('saveNameBtn').addEventListener('click', saveStudentName);
+            document.getElementById('studentNameInput').addEventListener('change', saveStudentName);
+
+            // Mode selection buttons
+            document.getElementById('modeConfigBtn').addEventListener('click', () => selectMode(1));
+            document.getElementById('modeNobleBtn').addEventListener('click', () => selectMode(2));
+            document.getElementById('modeOrbitalBtn').addEventListener('click', () => selectMode(3));
+
+            // Core Actions
+            document.getElementById('checkAnswerBtn').addEventListener('click', checkAnswer);
+            document.getElementById('studentAnswerInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') checkAnswer();
+            });
+            document.getElementById('studentAnswerInput').addEventListener('input', handleAnswerInputSuggestions);
+
+            document.getElementById('nextExerciseBtn').addEventListener('click', () => generateNewProblem());
+            document.getElementById('requestHintBtn').addEventListener('click', provideHint);
+
+            // Modals
+            document.getElementById('openRecordBtn').addEventListener('click', openRecordModal);
+            document.getElementById('closeRecordBtn').addEventListener('click', closeRecordModal);
+            document.getElementById('clearRecordBtn').addEventListener('click', clearLogRecord);
+            document.getElementById('downloadPdfBtn').addEventListener('click', generatePdfReport);
+
+            document.getElementById('openPtBtn').addEventListener('click', () => document.getElementById('ptModal').classList.remove('hidden'));
+            document.getElementById('closePtBtn').addEventListener('click', () => document.getElementById('ptModal').classList.add('hidden'));
+        }
+
+        function saveStudentName() {
+            const inputVal = document.getElementById('studentNameInput').value.trim();
+            if (inputVal) {
+                state.studentName = inputVal;
+                showNotification(state.lang === 'es' ? `Nombre guardado: ${state.studentName}` : `Name saved: ${state.studentName}`, 'success');
+            }
+        }
+
+        function toggleTheme() {
+            state.theme = state.theme === 'light' ? 'dark' : 'light';
+            if (state.theme === 'dark') {
+                document.body.classList.remove('light-theme');
+                document.body.classList.add('dark-theme', 'dark');
+            } else {
+                document.body.classList.remove('dark-theme', 'dark');
+                document.body.classList.add('light-theme');
+            }
+        }
+
+        function toggleLanguage() {
+            state.lang = state.lang === 'es' ? 'en' : 'es';
+            document.getElementById('currentLangLabel').textContent = state.lang.toUpperCase();
+            updateUIStrings();
+            if (state.currentElement) {
+                renderProblemDisplay();
+            }
+        }
+
+        function updateUIStrings() {
+            const t = I18N[state.lang];
+            document.getElementById('appSubtitle').textContent = t.subtitle;
+            document.getElementById('welcomeTitle').textContent = t.welcomeTitle;
+            document.getElementById('welcomeDesc').textContent = t.welcomeDesc;
+            document.getElementById('statSolvedLabel').textContent = t.solved;
+            document.getElementById('statAccuracyLabel').textContent = t.accuracy;
+            document.getElementById('statTimeLabel').textContent = t.time;
+
+            document.getElementById('mode1Title').textContent = t.m1Title;
+            document.getElementById('mode1Desc').textContent = t.m1Desc;
+            document.getElementById('mode2Title').textContent = t.m2Title;
+            document.getElementById('mode2Desc').textContent = t.m2Desc;
+            document.getElementById('mode3Title').textContent = t.m3Title;
+            document.getElementById('mode3Desc').textContent = t.m3Desc;
+
+            document.getElementById('exerciseInstructions').textContent = t.inst;
+            document.getElementById('nextBtnText').textContent = t.nextBtn;
+            document.getElementById('studentAnswerInput').placeholder = t.placeholder;
+            document.getElementById('checkBtnText').textContent = t.checkBtn;
+
+            document.getElementById('hintBoxTitle').textContent = t.hintTitle;
+            document.getElementById('requestHintText').textContent = t.hintBtn;
+            if (state.hintsGiven === 0) {
+                document.getElementById('hintContent').textContent = t.hintDefault;
+            }
+
+            document.getElementById('recordModalTitle').textContent = t.recTitle;
+            document.getElementById('recordModalSub').textContent = t.recSub;
+            document.getElementById('recStudentLabel').textContent = t.recStudent;
+            document.getElementById('recAttemptsLabel').textContent = t.recAttempts;
+            document.getElementById('recScoreLabel').textContent = t.recScore;
+
+            document.getElementById('thType').textContent = t.thType;
+            document.getElementById('thConfig').textContent = t.thConfig;
+            document.getElementById('thInput').textContent = t.thInput;
+            document.getElementById('thStatus').textContent = t.thStatus;
+            document.getElementById('thTime').textContent = t.thTime;
+
+            document.getElementById('clearRecText').textContent = t.clearRec;
+            document.getElementById('downloadPdfText').textContent = t.dlPdf;
+            document.getElementById('ptModalTitle').textContent = t.ptTitle;
+            document.getElementById('ptHintNote').textContent = t.ptHint;
+            document.getElementById('ptBtnText').textContent = t.ptBtnText;
+            document.getElementById('recordBtnText').textContent = t.recBtnText;
+        }
+
+        function selectMode(modeNumber) {
+            state.activeMode = modeNumber;
+            state.hintsGiven = 0;
+            document.getElementById('hintContent').textContent = I18N[state.lang].hintDefault;
+
+            // Highlight active mode button
+            const modeBtns = [
+                document.getElementById('modeConfigBtn'),
+                document.getElementById('modeNobleBtn'),
+                document.getElementById('modeOrbitalBtn')
+            ];
+
+            modeBtns.forEach((btn, idx) => {
+                const indicator = btn.querySelector('.active-indicator');
+                if (idx + 1 === modeNumber) {
+                    btn.classList.add('ring-4', 'ring-brand-orange');
+                    if (indicator) indicator.classList.remove('hidden');
+                } else {
+                    btn.classList.remove('ring-4', 'ring-brand-orange');
+                    if (indicator) indicator.classList.add('hidden');
+                }
+            });
+
+            // Update mode badge title
+            const badge = document.getElementById('activeModeBadge');
+            if (modeNumber === 1) badge.textContent = state.lang === 'es' ? "Configuración Estándar (Z: 1-38)" : "Standard Config (Z: 1-38)";
+            if (modeNumber === 2) badge.textContent = state.lang === 'es' ? "Notación Gas Noble (Z: 1-100)" : "Noble Gas Notation (Z: 1-100)";
+            if (modeNumber === 3) badge.textContent = state.lang === 'es' ? "Diagrama de Órbitas (Z: 1-38)" : "Orbital Diagram (Z: 1-38)";
+
+            generateNewProblem();
+        }
+
+        function generateNewProblem() {
+            let maxZ = (state.activeMode === 2) ? 100 : 38;
+            const randomIndex = Math.floor(Math.random() * maxZ);
+            state.currentElement = ELEMENTS_DATA[randomIndex];
+            state.hintsGiven = 0;
+
+            document.getElementById('studentAnswerInput').value = '';
+            document.getElementById('feedbackContainer').classList.add('hidden');
+            document.getElementById('hintContent').textContent = I18N[state.lang].hintDefault;
+
+            renderProblemDisplay();
+        }
+
+        function renderProblemDisplay() {
+            const container = document.getElementById('problemDisplay');
+            container.innerHTML = '';
+            const el = state.currentElement;
+
+            if (state.activeMode === 1) {
+                // Standard Full Configuration
+                const formattedConfig = formatConfigSubscripts(el.config);
+                container.innerHTML = `
+                    <div class="space-y-2">
+                        <span class="text-xs font-bold text-brand-orange uppercase tracking-widest block">
+                            ${state.lang === 'es' ? 'Configuración Electrónica Completa' : 'Full Electron Configuration'}
+                        </span>
+                        <p class="font-mono text-xl sm:text-2xl font-bold text-slate-800 dark:text-blue-300 tracking-wide">
+                            ${formattedConfig}
+                        </p>
+                    </div>
+                `;
+            } else if (state.activeMode === 2) {
+                // Noble Gas Notation
+                const formattedNoble = formatConfigSubscripts(el.noble);
+                container.innerHTML = `
+                    <div class="space-y-2">
+                        <span class="text-xs font-bold text-brand-blue dark:text-blue-400 uppercase tracking-widest block">
+                            ${state.lang === 'es' ? 'Abreviatura de Gas Noble' : 'Noble Gas Notation'}
+                        </span>
+                        <p class="font-mono text-2xl sm:text-3xl font-extrabold text-brand-orange tracking-wider">
+                            ${formattedNoble}
+                        </p>
+                    </div>
+                `;
+            } else if (state.activeMode === 3) {
+                // Orbital Diagram Representation (Arrows in subshell boxes)
+                const orbitalHtml = generateOrbitalDiagramHtml(el);
+                container.innerHTML = `
+                    <div class="flex flex-col items-center gap-3 w-full">
+                        <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">
+                            ${state.lang === 'es' ? 'Diagrama de Diagrama de Espín (Órbitas)' : 'Orbital Spin Diagram'}
+                        </span>
+                        <div class="flex flex-wrap justify-center items-end gap-3 max-w-full">
+                            ${orbitalHtml}
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function formatConfigSubscripts(configStr) {
+            // Converts 1s² 2s² 2p⁶ to HTML with superscripts
+            return configStr.replace(/([s|p|d|f])(\d+)/g, '$1<sup>$2</sup>');
+        }
+
+        function generateOrbitalDiagramHtml(el) {
+            // Helper to generate orbital subshell boxes based on Z (1 to 38)
+            const subshellCaps = [
+                { name: "1s", count: 1 },
+                { name: "2s", count: 1 },
+                { name: "2p", count: 3 },
+                { name: "3s", count: 1 },
+                { name: "3p", count: 3 },
+                { name: "4s", count: 1 },
+                { name: "3d", count: 5 },
+                { name: "4p", count: 3 },
+                { name: "5s", count: 1 }
+            ];
+
+            let remainingElectrons = el.z;
+            let html = '';
+
+            // Handle Aufbau exception cases for Cr(24) and Cu(29)
+            let customSubshellElectrons = null;
+            if (el.z === 24) { // Cr: 4s1 3d5
+                customSubshellElectrons = { "1s":2, "2s":2, "2p":6, "3s":2, "3p":6, "4s":1, "3d":5 };
+            } else if (el.z === 29) { // Cu: 4s1 3d10
+                customSubshellElectrons = { "1s":2, "2s":2, "2p":6, "3s":2, "3p":6, "4s":1, "3d":10 };
+            }
+
+            subshellCaps.forEach(sub => {
+                let eInSub = 0;
+
+                if (customSubshellElectrons) {
+                    eInSub = customSubshellElectrons[sub.name] || 0;
+                } else {
+                    const maxCap = sub.count * 2;
+                    eInSub = Math.min(remainingElectrons, maxCap);
+                    remainingElectrons -= eInSub;
+                }
+
+                if (eInSub > 0) {
+                    // Distribute eInSub electrons across sub.count boxes according to Hund's rule
+                    let boxSpins = Array(sub.count).fill(0); // 0: empty, 1: up, 2: paired up&down
+                    
+                    for (let i = 0; i < eInSub; i++) {
+                        if (i < sub.count) {
+                            boxSpins[i] = 1; // First pass: Spin up in each orbital box
+                        } else {
+                            boxSpins[i - sub.count] = 2; // Second pass: Pair with Spin down
+                        }
+                    }
+
+                    let boxesHtml = boxSpins.map(spin => {
+                        let arrows = '';
+                        if (spin === 1) arrows = `<span class="spin-up">↑</span>`;
+                        if (spin === 2) arrows = `<span class="spin-up">↑</span><span class="spin-down">↓</span>`;
+                        return `<div class="orbital-box">${arrows}</div>`;
+                    }).join('');
+
+                    html += `
+                        <div class="flex flex-col items-center bg-slate-50 dark:bg-slate-800 p-2 rounded-xl border border-brand-orange">
+                            <div class="flex gap-1 mb-1">${boxesHtml}</div>
+                            <span class="text-xs font-mono font-bold text-slate-700 dark:text-slate-300">${sub.name}</span>
+                        </div>
+                    `;
+                }
+            });
+
+            return html;
+        }
+
+        function checkAnswer() {
+            const inputEl = document.getElementById('studentAnswerInput');
+            const rawVal = inputEl.value.trim().toLowerCase();
+
+            if (!rawVal) {
+                showFeedback(
+                    state.lang === 'es' ? 'Por favor escribe un nombre o símbolo de elemento.' : 'Please enter an element name or symbol.',
+                    'error'
+                );
+                return;
+            }
+
+            const current = state.currentElement;
+            const validSymbol = current.symbol.toLowerCase();
+            const validEs = current.nameEs.toLowerCase();
+            const validEn = current.nameEn.toLowerCase();
+
+            // Normalize accent marks for Spanish checking
+            const normalizedInput = rawVal.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            const normalizedEs = validEs.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+            const isCorrect = (
+                normalizedInput === validSymbol ||
+                normalizedInput === normalizedEs ||
+                normalizedInput === validEn
+            );
+
+            // Log entry creation with language sensitivity
+            const timestamp = document.getElementById('sessionTimer').textContent;
+            let modeName = state.lang === 'es' ? "Configuración Estándar" : "Standard Configuration";
+            if (state.activeMode === 2) modeName = state.lang === 'es' ? "Notación Gas Noble" : "Noble Gas Notation";
+            if (state.activeMode === 3) modeName = state.lang === 'es' ? "Diagrama de Órbitas" : "Orbital Diagram";
+
+            let promptStr = current.config;
+            if (state.activeMode === 2) promptStr = current.noble;
+
+            const logItem = {
+                id: state.logs.length + 1,
+                mode: modeName,
+                prompt: promptStr,
+                studentAnswer: inputEl.value.trim(),
+                correctAnswer: `${state.lang === 'es' ? current.nameEs : current.nameEn} (${current.symbol})`,
+                isCorrect: isCorrect,
+                timestamp: timestamp
+            };
+
+            state.logs.push(logItem);
+            updateStatsBadges();
+
+            if (isCorrect) {
+                if (window.confetti) {
+                    confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
+                }
+
+                showFeedback(
+                    state.lang === 'es' ? 
+                    `¡Excelente trabajo! ${current.nameEs} (${current.symbol}) es la respuesta correcta.` : 
+                    `Great job! ${current.nameEn} (${current.symbol}) is correct.`,
+                    'success'
+                );
+
+                setTimeout(() => {
+                    generateNewProblem();
+                }, 2200);
+
+            } else {
+                showFeedback(
+                    state.lang === 'es' ? 
+                    `Incorrecto. ¡Revisa la estructura de electrones o pide una pista al asistente abajo!` : 
+                    `Incorrect. Review the electron layout or request a hint below!`,
+                    'error'
+                );
+            }
+        }
+
+        function showFeedback(msg, type) {
+            const container = document.getElementById('feedbackContainer');
+            container.classList.remove('hidden', 'bg-emerald-100', 'text-emerald-800', 'border-emerald-300', 'bg-red-100', 'text-red-800', 'border-red-300');
+
+            if (type === 'success') {
+                container.classList.add('bg-emerald-100', 'text-emerald-800', 'border-emerald-300', 'dark:bg-emerald-900/40', 'dark:text-emerald-200');
+                container.innerHTML = `<i class="fa-solid fa-circle-check mr-2"></i> ${msg}`;
+            } else {
+                container.classList.add('bg-red-100', 'text-red-800', 'border-red-300', 'dark:bg-red-900/40', 'dark:text-red-200');
+                container.innerHTML = `<i class="fa-solid fa-circle-xmark mr-2"></i> ${msg}`;
+            }
+        }
+
+        function provideHint() {
+            if (!state.currentElement) return;
+            state.hintsGiven++;
+            const el = state.currentElement;
+            const hintBox = document.getElementById('hintContent');
+
+            let hintMsg = '';
+
+            if (state.hintsGiven === 1) {
+                // Level 1 Hint: Total Electrons & Valence Shell
+                if (state.lang === 'es') {
+                    hintMsg = `Pista 1: Este elemento tiene un total de ${el.z} electrones (Número atómico Z = ${el.z}).`;
+                } else {
+                    hintMsg = `Hint 1: This element has a total of ${el.z} electrons (Atomic number Z = ${el.z}).`;
+                }
+            } else if (state.hintsGiven === 2) {
+                // Level 2 Hint: Period and Block
+                if (state.lang === 'es') {
+                    hintMsg = `Pista 2: Se ubica en el Periodo ${el.period} y pertenece al bloque '${el.block.toUpperCase()}'.`;
+                } else {
+                    hintMsg = `Hint 2: It is located in Period ${el.period} and belongs to block '${el.block.toUpperCase()}'.`;
+                }
+            } else {
+                // Level 3 Hint: Group Number
+                if (state.lang === 'es') {
+                    hintMsg = `Pista 3: Pertenece al Grupo ${el.group} de la Tabla Periódica. ¡Busca el elemento Z=${el.z}!`;
+                } else {
+                    hintMsg = `Hint 3: It belongs to Group ${el.group} on the Periodic Table. Check element Z=${el.z}!`;
+                }
+            }
+
+            hintBox.textContent = hintMsg;
+        }
+
+        function handleAnswerInputSuggestions() {
+            const input = document.getElementById('studentAnswerInput').value.trim().toLowerCase();
+            const suggestionsBox = document.getElementById('answerSuggestions');
+
+            if (input.length < 1) {
+                suggestionsBox.classList.add('hidden');
+                return;
+            }
+
+            const matches = ELEMENTS_DATA.filter(e => 
+                e.nameEs.toLowerCase().startsWith(input) || 
+                e.nameEn.toLowerCase().startsWith(input) || 
+                e.symbol.toLowerCase().startsWith(input)
+            ).slice(0, 5);
+
+            if (matches.length === 0) {
+                suggestionsBox.classList.add('hidden');
+                return;
+            }
+
+            suggestionsBox.innerHTML = matches.map(m => `
+                <div class="px-4 py-2 hover:bg-orange-100 dark:hover:bg-slate-700 cursor-pointer flex justify-between items-center text-xs font-semibold text-slate-800 dark:text-slate-200"
+                     onclick="selectSuggestion('${m.nameEs}')">
+                    <span>${state.lang === 'es' ? m.nameEs : m.nameEn}</span>
+                    <span class="text-brand-orange font-bold font-mono">${m.symbol}</span>
+                </div>
+            `).join('');
+
+            suggestionsBox.classList.remove('hidden');
+        }
+
+        function selectSuggestion(name) {
+            document.getElementById('studentAnswerInput').value = name;
+            document.getElementById('answerSuggestions').classList.add('hidden');
+        }
+
+        function updateStatsBadges() {
+            const totalAttempts = state.logs.length;
+            const correctAttempts = state.logs.filter(l => l.isCorrect).length;
+            const accuracy = totalAttempts > 0 ? Math.round((correctAttempts / totalAttempts) * 100) : 0;
+
+            document.getElementById('statSolvedVal').textContent = totalAttempts;
+            document.getElementById('statAccuracyVal').textContent = `${accuracy}%`;
+
+            document.getElementById('recStudentName').textContent = state.studentName;
+            document.getElementById('recTotalAttempts').textContent = totalAttempts;
+            document.getElementById('recScoreRatio').textContent = `${correctAttempts} / ${totalAttempts} (${accuracy}%)`;
+        }
+
+        function openRecordModal() {
+            updateStatsBadges();
+            const tbody = document.getElementById('recordTableBody');
+            tbody.innerHTML = '';
+
+            if (state.logs.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center py-6 text-slate-400 italic">
+                            ${state.lang === 'es' ? 'No se han registrado actividades aún.' : 'No activity logged yet.'}
+                        </td>
+                    </tr>
+                `;
+            } else {
+                state.logs.forEach((item, index) => {
+                    const tr = document.createElement('tr');
+                    tr.className = index % 2 === 0 ? 'bg-white dark:bg-slate-800' : 'bg-slate-50 dark:bg-slate-800/50';
+
+                    const correctLabel = state.lang === 'es' ? 'Correcto' : 'Correct';
+                    const incorrectLabel = state.lang === 'es' ? 'Incorrecto' : 'Incorrect';
+
+                    const statusBadge = item.isCorrect ? 
+                        `<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-xs"><i class="fa-solid fa-check"></i> ${correctLabel}</span>` : 
+                        `<span class="px-2 py-0.5 rounded-full bg-red-100 text-red-800 font-bold text-xs"><i class="fa-solid fa-xmark"></i> ${incorrectLabel}</span>`;
+
+                    tr.innerHTML = `
+                        <td class="py-2 px-3 font-mono text-slate-400">${item.id}</td>
+                        <td class="py-2 px-3 font-bold text-brand-blue dark:text-blue-300">${item.mode}</td>
+                        <td class="py-2 px-3 font-mono">${item.prompt}</td>
+                        <td class="py-2 px-3 font-semibold">${item.studentAnswer}</td>
+                        <td class="py-2 px-3">${statusBadge}</td>
+                        <td class="py-2 px-3 font-mono text-slate-500">${item.timestamp}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            document.getElementById('recordModal').classList.remove('hidden');
+        }
+
+        function closeRecordModal() {
+            document.getElementById('recordModal').classList.add('hidden');
+        }
+
+        function clearLogRecord() {
+            state.logs = [];
+            updateStatsBadges();
+            openRecordModal();
+        }
+
+        function generatePdfReport() {
+            if (!window.jspdf) {
+                showNotification("jsPDF Library loading...", "error");
+                return;
+            }
+
+            const isEs = state.lang === 'es';
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            // Header Banner
+            doc.setFillColor(255, 107, 0); // PrepaPractica Orange
+            doc.rect(0, 0, 210, 28, 'F');
+
+            doc.setTextColor(255, 255, 255);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(18);
+            
+            const titleText = isEs ? "PrepaPractica - Reporte de Desempeño" : "PrepaPractica - Performance Report";
+            doc.text(titleText, 14, 18);
+
+            // Student Meta Box
+            doc.setTextColor(30, 41, 59);
+            doc.setFontSize(11);
+            doc.setFont('helvetica', 'bold');
+            
+            const studentLabel = isEs ? `Estudiante: ${state.studentName}` : `Student: ${state.studentName}`;
+            doc.text(studentLabel, 14, 38);
+
+            const totalAttempts = state.logs.length;
+            const correctAttempts = state.logs.filter(l => l.isCorrect).length;
+            const accuracy = totalAttempts > 0 ? Math.round((correctAttempts / totalAttempts) * 100) : 0;
+
+            doc.setFont('helvetica', 'normal');
+            const dateLabel = isEs ? `Fecha del Reporte: ${new Date().toLocaleDateString()}` : `Report Date: ${new Date().toLocaleDateString()}`;
+            const totalLabel = isEs ? `Total de Ejercicios Verificados: ${totalAttempts}` : `Total Verified Exercises: ${totalAttempts}`;
+            const accuracyLabel = isEs ? `Aciertos: ${correctAttempts} (${accuracy}% de precisión)` : `Score: ${correctAttempts} (${accuracy}% accuracy)`;
+
+            doc.text(dateLabel, 14, 45);
+            doc.text(totalLabel, 14, 52);
+            doc.text(accuracyLabel, 14, 59);
+
+            // Table Data Conversion
+            const correctTxt = isEs ? "Correcto" : "Correct";
+            const incorrectTxt = isEs ? "Incorrecto" : "Incorrect";
+
+            const tableRows = state.logs.map(log => [
+                log.id,
+                log.mode,
+                log.prompt,
+                log.studentAnswer,
+                log.isCorrect ? correctTxt : incorrectTxt,
+                log.timestamp
+            ]);
+
+            const headers = isEs ? 
+                [['#', 'Tipo de Problema', 'Config / Notación', 'Respuesta Estudiante', 'Resultado', 'Tiempo']] : 
+                [['#', 'Problem Type', 'Config / Notation', 'Student Answer', 'Result', 'Time']];
+
+            doc.autoTable({
+                startY: 66,
+                head: headers,
+                body: tableRows,
+                headStyles: {
+                    fillColor: [30, 58, 138],
+                    textColor: [255, 255, 255],
+                    fontStyle: 'bold'
+                },
+                alternateRowStyles: {
+                    fillColor: [248, 250, 252]
+                },
+                styles: {
+                    fontSize: 9,
+                    cellPadding: 3
+                }
+            });
+
+            // Save PDF
+            const filename = `Report_PrepaPractica_${state.studentName.replace(/\s+/g, '_')}.pdf`;
+            doc.save(filename);
+        }
+
+        function renderPeriodicTable() {
+            const grid = document.getElementById('ptGrid');
+            grid.innerHTML = '';
+
+            ELEMENTS_DATA.forEach(el => {
+                const cell = document.createElement('div');
+                cell.className = "p-1.5 rounded-lg border border-orange-300 bg-white dark:bg-slate-700 hover:scale-105 transition cursor-pointer text-center flex flex-col justify-between shadow-sm";
+                cell.innerHTML = `
+                    <span class="text-[10px] text-slate-400 font-mono block leading-none">${el.z}</span>
+                    <span class="text-sm font-extrabold text-brand-orange leading-tight">${el.symbol}</span>
+                    <span class="text-[9px] text-slate-600 dark:text-slate-300 truncate block leading-none">${state.lang === 'es' ? el.nameEs : el.nameEn}</span>
+                `;
+                cell.onclick = () => {
+                    selectSuggestion(state.lang === 'es' ? el.nameEs : el.nameEn);
+                    document.getElementById('ptModal').classList.add('hidden');
+                };
+                grid.appendChild(cell);
+            });
+        }
+
+        function showNotification(msg, type) {
+            const toast = document.createElement('div');
+            toast.className = `fixed bottom-4 right-4 z-50 px-4 py-2.5 rounded-xl shadow-xl text-xs font-bold text-white transition-all transform translate-y-0 ${
+                type === 'success' ? 'bg-emerald-600' : 'bg-brand-orange'
+            }`;
+            toast.textContent = msg;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 2500);
+        }
+    </script>
+</body>
+</html>
